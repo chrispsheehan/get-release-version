@@ -43,6 +43,36 @@ Available outputs:
 - `createNewRelease`: whether the resolved bump level should create full release work
 - `bump`: resolved bump level, or empty when no matching commit exists
 
+## Preview PR Version
+
+You can pass a PR title through `subjects` to preview the version impact before merging:
+
+```yaml
+test-next-version-action:
+  name: Next Version Action
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Execute get-release-version action
+      id: get_next_version
+      uses: chrispsheehan/get-release-version@<version>
+      with:
+        subjects: ${{ github.event.pull_request.title }}
+
+    - name: Show action outputs
+      run: |
+        echo "currentVersion=${{ steps.get_next_version.outputs.currentVersion }}"
+        echo "version=${{ steps.get_next_version.outputs.version }}"
+        echo "createNewTag=${{ steps.get_next_version.outputs.createNewTag }}"
+        echo "createNewRelease=${{ steps.get_next_version.outputs.createNewRelease }}"
+        echo "bump=${{ steps.get_next_version.outputs.bump }}"
+```
+
+With the default Conventional Commits rules, a PR title like `feat: add reports` previews a minor bump, `fix: preserve compatibility` previews a patch bump, and `docs: update readme` does not create a tag.
+
 ## Local Usage
 
 Run the action entrypoint directly:
