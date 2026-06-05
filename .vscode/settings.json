@@ -4,8 +4,9 @@
   "python.testing.unittestArgs": [
     "-v",
     "-s",
-    "tests",
+    ".",
     "-p",
     "test_unit_*.py"
-  ]
+  ],
+  "python.testing.cwd": "${workspaceFolder}"
 }

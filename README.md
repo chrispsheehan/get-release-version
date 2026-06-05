@@ -33,8 +33,6 @@ Optional override:
 ```yaml
 - uses: chrispsheehan/get-release-version@<version>
   id: get-release-version
-  with:
-    tag_prefix: v
 ```
 
 Available outputs:
@@ -50,7 +48,7 @@ Available outputs:
 Run the action entrypoint directly:
 
 ```sh
-just local-test --tag-prefix v
+just local-test
 ```
 
 Functional tests:
@@ -75,10 +73,10 @@ Unit tests:
 just unit-test
 ```
 
-Example JSON output with `--tag-prefix v`:
+Example JSON output:
 
 ```json
-{"currentVersion":"v0.14.0","version":"v0.14.1","createNewTag":"true","createNewRelease":"true","bump":"patch"}
+{"currentVersion":"0.14.0","version":"0.14.1","createNewTag":"true","createNewRelease":"true","bump":"patch"}
 ```
 
 `createNewTag` decides whether the workflow should create a semver tag.
