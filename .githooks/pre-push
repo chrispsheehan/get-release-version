@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+echo "Running Python unit tests before push..."
+python3 -m unittest discover -v -s tests -p 'test_unit_*.py'
