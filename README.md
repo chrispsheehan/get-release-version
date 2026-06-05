@@ -9,11 +9,11 @@ For local runs, `just local-test` sets `GITHUB_WORKSPACE` to the repository root
 
 By default, this action follows the [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) versioning rules.
 
-Default prefix contract:
+Default versioning contract:
 
-- `major_prefixes`: empty string; major bumps are detected from `!` or `BREAKING CHANGE:` markers
-- `minor_prefixes`: `feat`
-- `patch_prefixes`: `fix`
+- major: commits with `!`, `BREAKING CHANGE:`, or `BREAKING-CHANGE:`
+- minor: commits with type `feat`
+- patch: commits with type `fix`
 - `release_bumps`: `major,minor,patch`
 - `tag_prefix`: empty string
 
@@ -21,26 +21,39 @@ Optional override:
 
 - `subjects`: newline-delimited subjects to classify instead of reading git history
 - this is useful in PR validation when you want to preview the version implied by the PR title rather than the branch commit list
+- `major_prefixes`, `minor_prefixes`, and `patch_prefixes`: comma-delimited commit types to classify differently from the defaults
 - `release_bumps`: comma-delimited bump levels that should create a full release; for example `major` limits releases to major bumps while still allowing minor and patch subjects to create tags
 - `tag_prefix`: optional tag prefix; for example `v` discovers tags like `v1.2.3` and outputs versions like `v1.2.4`
 
+## GitHub Actions Usage
+
+```yaml
+- uses: chrispsheehan/get-release-version@<version>
+  id: get-release-version
+  with:
+    tag_prefix: v
+```
+
+Available outputs:
+
+- `currentVersion`: latest matching semver tag, or `0.0.0` with the configured prefix when none exists
+- `version`: next semver tag when a matching commit exists, otherwise the current tag
+- `createNewTag`: whether a new semver tag should be created
+- `createNewRelease`: whether the resolved bump level should create full release work
+- `bump`: resolved bump level, or empty when no matching commit exists
+
 ## Local Usage
 
-Directly on your machine:
+Run the action entrypoint directly:
 
 ```sh
-just local-test \
-  --minor-prefixes feat \
-  --patch-prefixes fix \
-  --tag-prefix v
+just local-test --tag-prefix v
 ```
 
 Functional tests:
 
 ```sh
-just functional-test \
-  --minor-prefixes feat \
-  --patch-prefixes fix
+just functional-test
 ```
 
 The functional tests cover:
@@ -53,7 +66,7 @@ The functional tests cover:
 - `!` and `BREAKING CHANGE:` breaking-change markers
 - mixed commit lists where the highest bump level should win
 
-Workspace resolution unit test:
+Unit tests:
 
 ```sh
 just unit-test
