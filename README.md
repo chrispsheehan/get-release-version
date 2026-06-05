@@ -5,6 +5,7 @@ Repo-local GitHub Action and CLI for computing the next plain semver tag from co
 The GitHub Action itself runs through the Docker image defined in this directory's `Dockerfile`.
 The `justfile` is only a local test harness; the Docker action itself runs the Python entrypoint directly.
 Inside GitHub Actions, the script resolves the checkout from `GITHUB_WORKSPACE` rather than assuming a fixed Docker working directory.
+For local runs, `just local-test` sets `GITHUB_WORKSPACE` to the repository root before invoking the script.
 
 Default prefix contract:
 

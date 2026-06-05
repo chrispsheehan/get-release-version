@@ -4,7 +4,7 @@ local-test *args:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    python3 "{{ACTION_DIR}}/get_next_version.py" "$@"
+    GITHUB_WORKSPACE="{{ACTION_DIR}}" python3 "{{ACTION_DIR}}/get_next_version.py" "$@"
 
 
 functional-test *args:

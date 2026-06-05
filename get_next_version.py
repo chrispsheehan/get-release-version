@@ -47,13 +47,9 @@ def git(*args: str) -> str:
 
 def resolve_workspace() -> Path:
     workspace = os.environ.get("GITHUB_WORKSPACE")
-    if workspace:
-        return Path(workspace)
-    current = Path.cwd().resolve()
-    for candidate in (current, *current.parents):
-        if (candidate / ".git").exists():
-            return candidate
-    return current
+    if not workspace:
+        raise RuntimeError("GITHUB_WORKSPACE is not set")
+    return Path(workspace)
 
 
 def ensure_safe_directory() -> None:

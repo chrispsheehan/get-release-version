@@ -14,21 +14,7 @@ from get_next_version import parse_release_bumps, resolve_workspace
 
 
 class WorkspaceResolutionTests(unittest.TestCase):
-    def test_resolve_workspace_walks_up_to_git_root(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "repo"
-            nested = repo / ".github" / "actions" / "get-next-version"
-            nested.mkdir(parents=True)
-            (repo / ".git").mkdir()
-
-            old_cwd = Path.cwd()
-            try:
-                os.chdir(nested)
-                self.assertEqual(resolve_workspace().resolve(), repo.resolve())
-            finally:
-                os.chdir(old_cwd)
-
-    def test_resolve_workspace_prefers_github_workspace(self) -> None:
+    def test_resolve_workspace_uses_github_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / "repo"
             repo.mkdir()
@@ -41,6 +27,18 @@ class WorkspaceResolutionTests(unittest.TestCase):
                     os.environ.pop("GITHUB_WORKSPACE", None)
                 else:
                     os.environ["GITHUB_WORKSPACE"] = old_value
+
+    def test_resolve_workspace_requires_github_workspace(self) -> None:
+        old_value = os.environ.get("GITHUB_WORKSPACE")
+        try:
+            os.environ.pop("GITHUB_WORKSPACE", None)
+            with self.assertRaisesRegex(RuntimeError, "GITHUB_WORKSPACE is not set"):
+                resolve_workspace()
+        finally:
+            if old_value is None:
+                os.environ.pop("GITHUB_WORKSPACE", None)
+            else:
+                os.environ["GITHUB_WORKSPACE"] = old_value
 
 
 class ReleaseBumpTests(unittest.TestCase):
