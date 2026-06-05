@@ -20,14 +20,6 @@ Default versioning contract:
 - short manual tags like `1`, `1.1`, `v1`, and `v1.1` are accepted as previous versions and normalized when calculating the next full semver tag
 - non-version tags like `prod`, `dev`, or `latest` are ignored for version calculation
 
-Optional override:
-
-- `subjects`: newline-delimited subjects to classify instead of reading git history
-- this is useful in PR validation when you want to preview the version implied by the PR title rather than the branch commit list
-- `major_prefixes`, `minor_prefixes`, and `patch_prefixes`: comma-delimited commit types to classify differently from the defaults
-- `release_bumps`: comma-delimited bump levels that should create a full release; for example `major` limits releases to major bumps while still allowing minor and patch subjects to create tags
-- `tag_prefix`: optional tag prefix; for example `v` discovers tags like `v1`, `v1.2`, and `v1.2.3`, then outputs versions like `v1.2.4`
-
 ## GitHub Actions Usage
 
 ```yaml
@@ -35,13 +27,26 @@ Optional override:
   id: get-release-version
 ```
 
-Available outputs:
+## Inputs
 
-- `currentVersion`: latest matching semver tag, or `0.0.1` with the configured prefix when none exists
-- `version`: next semver tag when a matching commit exists, otherwise the current tag
-- `createNewTag`: whether a new semver tag should be created
-- `createNewRelease`: whether the resolved bump level should create full release work
-- `bump`: resolved bump level, or empty when no matching commit exists
+| Name | Default | Description |
+| --- | --- | --- |
+| `subjects` | empty string | Optional newline-delimited commit subjects to classify instead of reading git history. Useful for PR title previews. |
+| `major_prefixes` | empty string | Comma-delimited commit types that trigger a major bump. Conventional Commits breaking-change markers still trigger major bumps. |
+| `minor_prefixes` | `feat` | Comma-delimited commit types that trigger a minor bump. |
+| `patch_prefixes` | `fix` | Comma-delimited commit types that trigger a patch bump. |
+| `release_bumps` | `major,minor,patch` | Comma-delimited bump levels that should create a full release. For example, `major` limits releases to major bumps while still allowing minor and patch commits to create tags. |
+| `tag_prefix` | empty string | Optional prefix for semver tags. For example, `v` discovers tags like `v1`, `v1.2`, and `v1.2.3`, then outputs versions like `v1.2.4`. |
+
+## Outputs
+
+| Name | Description |
+| --- | --- |
+| `currentVersion` | Latest matching semver tag, or `0.0.1` with the configured prefix when none exists. |
+| `version` | Next semver tag when a matching commit exists, otherwise the current tag. |
+| `createNewTag` | Whether a new semver tag should be created. |
+| `createNewRelease` | Whether the resolved bump level should create full release work. |
+| `bump` | Resolved bump level: `major`, `minor`, `patch`, or empty when no matching commit exists. |
 
 ## Preview PR Version
 
