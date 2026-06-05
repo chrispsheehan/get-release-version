@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+INITIAL_VERSION = "0.0.1"
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
 
@@ -92,7 +93,7 @@ def latest_semver_tag(tag_prefix: str) -> str:
     for tag in tags:
         if parse_tag_version(tag, tag_prefix):
             return tag
-    return f"{tag_prefix}0.0.0"
+    return f"{tag_prefix}{INITIAL_VERSION}"
 
 
 def commit_messages_since(tag: str) -> list[str]:

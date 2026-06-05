@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,6 +15,7 @@ from get_next_version import (
     SemVer,
     classify_bump,
     format_tag,
+    latest_semver_tag,
     parse_release_bumps,
     parse_tag_version,
     resolve_workspace,
@@ -101,6 +103,40 @@ class TagPrefixTests(unittest.TestCase):
     def test_format_tag_applies_configured_prefix(self) -> None:
         self.assertEqual(format_tag(SemVer(1, 2, 3), "v"), "v1.2.3")
         self.assertEqual(format_tag(SemVer(1, 2, 3), ""), "1.2.3")
+
+
+class LatestSemverTagTests(unittest.TestCase):
+    def test_latest_semver_tag_falls_back_to_initial_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "CI Test"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.email", "ci@example.invalid"],
+                cwd=repo,
+                check=True,
+                capture_output=True,
+            )
+            (repo / "file.txt").write_text("test\n", encoding="utf-8")
+            subprocess.run(["git", "add", "file.txt"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-c", "commit.gpgsign=false", "commit", "-m", "docs: initial"],
+                cwd=repo,
+                check=True,
+                capture_output=True,
+            )
+
+            old_value = os.environ.get("GITHUB_WORKSPACE")
+            try:
+                os.environ["GITHUB_WORKSPACE"] = str(repo)
+                self.assertEqual(latest_semver_tag(""), "0.0.1")
+                self.assertEqual(latest_semver_tag("v"), "v0.0.1")
+            finally:
+                if old_value is None:
+                    os.environ.pop("GITHUB_WORKSPACE", None)
+                else:
+                    os.environ["GITHUB_WORKSPACE"] = old_value
 
 
 if __name__ == "__main__":

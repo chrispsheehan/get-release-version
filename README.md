@@ -16,6 +16,7 @@ Default versioning contract:
 - patch: commits with type `fix`
 - `release_bumps`: `major,minor,patch`
 - `tag_prefix`: empty string
+- when no matching semver tag exists, `currentVersion` falls back to `0.0.1` with the configured prefix
 
 Optional override:
 
@@ -36,7 +37,7 @@ Optional override:
 
 Available outputs:
 
-- `currentVersion`: latest matching semver tag, or `0.0.0` with the configured prefix when none exists
+- `currentVersion`: latest matching semver tag, or `0.0.1` with the configured prefix when none exists
 - `version`: next semver tag when a matching commit exists, otherwise the current tag
 - `createNewTag`: whether a new semver tag should be created
 - `createNewRelease`: whether the resolved bump level should create full release work

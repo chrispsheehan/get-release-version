@@ -75,5 +75,7 @@ jobs:
       - name: Assert no matching bump outputs
         run: |
           test "${{ steps.get-next-version-none.outputs.bump }}" = ""
+          test "${{ steps.get-next-version-none.outputs.currentVersion }}" = "0.0.1"
+          test "${{ steps.get-next-version-none.outputs.version }}" = "0.0.1"
           test "${{ steps.get-next-version-none.outputs.createNewTag }}" = "false"
           test "${{ steps.get-next-version-none.outputs.createNewRelease }}" = "false"
