@@ -28,3 +28,46 @@ jobs:
           python-version: '3.12'
       - name: Run functional tests
         run: python tests/test_functional_versioning.py
+
+  end-to-end-tests:
+    needs: functional-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run local action for minor bump
+        id: get-next-version-minor
+        uses: ./
+        with:
+          subjects: "fix: exercise local action end to end"
+
+      - name: Assert minor bump outputs
+        run: |
+          test "${{ steps.get-next-version-minor.outputs.bump }}" = "minor"
+          test "${{ steps.get-next-version-minor.outputs.createNewTag }}" = "true"
+          test "${{ steps.get-next-version-minor.outputs.createNewRelease }}" = "true"
+
+      - name: Run local action for patch bump
+        id: get-next-version-patch
+        uses: ./
+        with:
+          subjects: "docs: exercise patch tag output"
+
+      - name: Assert patch bump outputs
+        run: |
+          test "${{ steps.get-next-version-patch.outputs.bump }}" = "patch"
+          test "${{ steps.get-next-version-patch.outputs.createNewTag }}" = "true"
+          test "${{ steps.get-next-version-patch.outputs.createNewRelease }}" = "false"
+
+      - name: Run local action for no matching bump
+        id: get-next-version-none
+        uses: ./
+        with:
+          subjects: "Merge pull request #123 from example/branch"
+
+      - name: Assert no matching bump outputs
+        run: |
+          test "${{ steps.get-next-version-none.outputs.bump }}" = ""
+          test "${{ steps.get-next-version-none.outputs.createNewTag }}" = "false"
+          test "${{ steps.get-next-version-none.outputs.createNewRelease }}" = "false"
