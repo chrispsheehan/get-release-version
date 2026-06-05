@@ -92,13 +92,19 @@ class ClassifyBumpTests(unittest.TestCase):
 class TagPrefixTests(unittest.TestCase):
     def test_parse_tag_version_accepts_configured_prefix(self) -> None:
         self.assertEqual(parse_tag_version("v1.2.3", "v"), SemVer(1, 2, 3))
+        self.assertEqual(parse_tag_version("v1.2", "v"), SemVer(1, 2, 0))
+        self.assertEqual(parse_tag_version("v1", "v"), SemVer(1, 0, 0))
 
     def test_parse_tag_version_rejects_missing_configured_prefix(self) -> None:
         self.assertIsNone(parse_tag_version("1.2.3", "v"))
+        self.assertIsNone(parse_tag_version("prod", "v"))
 
     def test_parse_tag_version_keeps_plain_semver_default(self) -> None:
         self.assertEqual(parse_tag_version("1.2.3", ""), SemVer(1, 2, 3))
+        self.assertEqual(parse_tag_version("1.2", ""), SemVer(1, 2, 0))
+        self.assertEqual(parse_tag_version("1", ""), SemVer(1, 0, 0))
         self.assertIsNone(parse_tag_version("v1.2.3", ""))
+        self.assertIsNone(parse_tag_version("prod", ""))
 
     def test_format_tag_applies_configured_prefix(self) -> None:
         self.assertEqual(format_tag(SemVer(1, 2, 3), "v"), "v1.2.3")
@@ -126,6 +132,71 @@ class LatestSemverTagTests(unittest.TestCase):
                 check=True,
                 capture_output=True,
             )
+
+            old_value = os.environ.get("GITHUB_WORKSPACE")
+            try:
+                os.environ["GITHUB_WORKSPACE"] = str(repo)
+                self.assertEqual(latest_semver_tag(""), "0.0.1")
+                self.assertEqual(latest_semver_tag("v"), "v0.0.1")
+            finally:
+                if old_value is None:
+                    os.environ.pop("GITHUB_WORKSPACE", None)
+                else:
+                    os.environ["GITHUB_WORKSPACE"] = old_value
+
+    def test_latest_semver_tag_accepts_short_manual_tags(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "CI Test"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.email", "ci@example.invalid"],
+                cwd=repo,
+                check=True,
+                capture_output=True,
+            )
+            (repo / "file.txt").write_text("test\n", encoding="utf-8")
+            subprocess.run(["git", "add", "file.txt"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-c", "commit.gpgsign=false", "commit", "-m", "docs: initial"],
+                cwd=repo,
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(["git", "tag", "v1.1"], cwd=repo, check=True, capture_output=True)
+
+            old_value = os.environ.get("GITHUB_WORKSPACE")
+            try:
+                os.environ["GITHUB_WORKSPACE"] = str(repo)
+                self.assertEqual(latest_semver_tag("v"), "v1.1")
+            finally:
+                if old_value is None:
+                    os.environ.pop("GITHUB_WORKSPACE", None)
+                else:
+                    os.environ["GITHUB_WORKSPACE"] = old_value
+
+    def test_latest_semver_tag_ignores_non_version_tags(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "CI Test"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.email", "ci@example.invalid"],
+                cwd=repo,
+                check=True,
+                capture_output=True,
+            )
+            (repo / "file.txt").write_text("test\n", encoding="utf-8")
+            subprocess.run(["git", "add", "file.txt"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-c", "commit.gpgsign=false", "commit", "-m", "docs: initial"],
+                cwd=repo,
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(["git", "tag", "prod"], cwd=repo, check=True, capture_output=True)
 
             old_value = os.environ.get("GITHUB_WORKSPACE")
             try:

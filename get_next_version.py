@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 INITIAL_VERSION = "0.0.1"
-SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+VERSION_RE = re.compile(r"^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?$")
 
 
 @dataclass(frozen=True, order=True)
@@ -23,10 +23,10 @@ class SemVer:
 
     @classmethod
     def parse(cls, value: str) -> "SemVer | None":
-        match = SEMVER_RE.fullmatch(value.strip())
+        match = VERSION_RE.fullmatch(value.strip())
         if not match:
             return None
-        major, minor, patch = (int(part) for part in match.groups())
+        major, minor, patch = (int(part or 0) for part in match.groups())
         return cls(major, minor, patch)
 
     def bump(self, level: str) -> "SemVer":

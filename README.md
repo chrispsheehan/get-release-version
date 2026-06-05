@@ -17,6 +17,8 @@ Default versioning contract:
 - `release_bumps`: `major,minor,patch`
 - `tag_prefix`: empty string
 - when no matching semver tag exists, `currentVersion` falls back to `0.0.1` with the configured prefix
+- short manual tags like `1`, `1.1`, `v1`, and `v1.1` are accepted as previous versions and normalized when calculating the next full semver tag
+- non-version tags like `prod`, `dev`, or `latest` are ignored for version calculation
 
 Optional override:
 
@@ -24,7 +26,7 @@ Optional override:
 - this is useful in PR validation when you want to preview the version implied by the PR title rather than the branch commit list
 - `major_prefixes`, `minor_prefixes`, and `patch_prefixes`: comma-delimited commit types to classify differently from the defaults
 - `release_bumps`: comma-delimited bump levels that should create a full release; for example `major` limits releases to major bumps while still allowing minor and patch subjects to create tags
-- `tag_prefix`: optional tag prefix; for example `v` discovers tags like `v1.2.3` and outputs versions like `v1.2.4`
+- `tag_prefix`: optional tag prefix; for example `v` discovers tags like `v1`, `v1.2`, and `v1.2.3`, then outputs versions like `v1.2.4`
 
 ## GitHub Actions Usage
 

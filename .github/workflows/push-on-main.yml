@@ -66,6 +66,45 @@ jobs:
           test "${{ steps.get-next-version-patch.outputs.createNewTag }}" = "true"
           test "${{ steps.get-next-version-patch.outputs.createNewRelease }}" = "true"
 
+      - name: Create temp short prefixed baseline tag
+        run: |
+          git tag -d v1.2.3
+          git tag -f v1.1
+
+      - name: Run local action for short tag normalization
+        id: get-next-version-short-tag
+        uses: ./
+        with:
+          subjects: "fix: exercise short tag output"
+          tag_prefix: "v"
+
+      - name: Assert short tag outputs
+        run: |
+          test "${{ steps.get-next-version-short-tag.outputs.bump }}" = "patch"
+          test "${{ steps.get-next-version-short-tag.outputs.currentVersion }}" = "v1.1"
+          test "${{ steps.get-next-version-short-tag.outputs.version }}" = "v1.1.1"
+          test "${{ steps.get-next-version-short-tag.outputs.createNewTag }}" = "true"
+          test "${{ steps.get-next-version-short-tag.outputs.createNewRelease }}" = "true"
+
+      - name: Create temp string tag
+        run: |
+          git tag -d v1.1
+          git tag -f prod
+
+      - name: Run local action ignoring string tag
+        id: get-next-version-string-tag
+        uses: ./
+        with:
+          subjects: "fix: exercise string tag ignore"
+
+      - name: Assert string tag is ignored
+        run: |
+          test "${{ steps.get-next-version-string-tag.outputs.bump }}" = "patch"
+          test "${{ steps.get-next-version-string-tag.outputs.currentVersion }}" = "0.0.1"
+          test "${{ steps.get-next-version-string-tag.outputs.version }}" = "0.0.2"
+          test "${{ steps.get-next-version-string-tag.outputs.createNewTag }}" = "true"
+          test "${{ steps.get-next-version-string-tag.outputs.createNewRelease }}" = "true"
+
       - name: Run local action for no matching bump
         id: get-next-version-none
         uses: ./
