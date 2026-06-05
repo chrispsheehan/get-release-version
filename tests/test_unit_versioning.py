@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from get_next_version import parse_release_bumps, resolve_workspace
+from get_next_version import SemVer, format_tag, parse_release_bumps, parse_tag_version, resolve_workspace
 
 
 class WorkspaceResolutionTests(unittest.TestCase):
@@ -49,6 +49,22 @@ class ReleaseBumpTests(unittest.TestCase):
     def test_parse_release_bumps_rejects_unknown_levels(self) -> None:
         with self.assertRaises(ValueError):
             parse_release_bumps("major,tiny")
+
+
+class TagPrefixTests(unittest.TestCase):
+    def test_parse_tag_version_accepts_configured_prefix(self) -> None:
+        self.assertEqual(parse_tag_version("v1.2.3", "v"), SemVer(1, 2, 3))
+
+    def test_parse_tag_version_rejects_missing_configured_prefix(self) -> None:
+        self.assertIsNone(parse_tag_version("1.2.3", "v"))
+
+    def test_parse_tag_version_keeps_plain_semver_default(self) -> None:
+        self.assertEqual(parse_tag_version("1.2.3", ""), SemVer(1, 2, 3))
+        self.assertIsNone(parse_tag_version("v1.2.3", ""))
+
+    def test_format_tag_applies_configured_prefix(self) -> None:
+        self.assertEqual(format_tag(SemVer(1, 2, 3), "v"), "v1.2.3")
+        self.assertEqual(format_tag(SemVer(1, 2, 3), ""), "1.2.3")
 
 
 if __name__ == "__main__":

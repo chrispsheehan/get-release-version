@@ -22,16 +22,20 @@ inputs:
     description: "Comma-separated bump levels that create a full release"
     required: false
     default: "major,minor"
+  tag_prefix:
+    description: "Optional prefix for semver tags, for example v for tags like v1.2.3"
+    required: false
+    default: ""
 
 outputs:
   version:
-    description: "Next semver version when a matching commit exists, otherwise the current tag"
+    description: "Next semver tag when a matching commit exists, otherwise the current tag"
   createNewTag:
     description: "Whether a new semver tag should be created"
   createNewRelease:
     description: "Whether the resolved bump level should create a full release"
   currentVersion:
-    description: "Latest semver tag discovered on the current branch, or 0.0.0 if none exists"
+    description: "Latest semver tag discovered on the current branch, or 0.0.0 with the configured prefix if none exists"
   bump:
     description: "Resolved bump level: major, minor, patch, or empty when no matching commit exists"
 
@@ -49,3 +53,5 @@ runs:
     - ${{ inputs.patch_prefixes }}
     - --release-bumps
     - ${{ inputs.release_bumps }}
+    - --tag-prefix
+    - ${{ inputs.tag_prefix }}

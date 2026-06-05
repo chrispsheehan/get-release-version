@@ -1,6 +1,6 @@
 # get-release-version
 
-Repo-local GitHub Action and CLI for computing the next plain semver tag from commit subject prefixes since the latest semver tag.
+Repo-local GitHub Action and CLI for computing the next semver tag from commit subject prefixes since the latest semver tag.
 
 The GitHub Action itself runs through the Docker image defined in this directory's `Dockerfile`.
 The `justfile` is only a local test harness; the Docker action itself runs the Python entrypoint directly.
@@ -13,12 +13,14 @@ Default prefix contract:
 - `minor_prefixes`: `minor,fix,patch`
 - `patch_prefixes`: `chore,docs`
 - `release_bumps`: `major,minor`
+- `tag_prefix`: empty string
 
 Optional override:
 
 - `subjects`: newline-delimited subjects to classify instead of reading git history
 - this is useful in PR validation when you want to preview the version implied by the PR title rather than the branch commit list
 - `release_bumps`: comma-delimited bump levels that should create a full release; for example `major` limits releases to major bumps while still allowing minor and patch subjects to create tags
+- `tag_prefix`: optional tag prefix; for example `v` discovers tags like `v1.2.3` and outputs versions like `v1.2.4`
 
 ## Local Usage
 
@@ -28,7 +30,8 @@ Directly on your machine:
 just local-test \
   --major-prefixes breaking,feat,!feat \
   --minor-prefixes minor,fix,patch \
-  --patch-prefixes chore,docs
+  --patch-prefixes chore,docs \
+  --tag-prefix v
 ```
 
 Functional tests:
@@ -54,10 +57,10 @@ Workspace resolution unit test:
 just unit-test
 ```
 
-Default JSON output:
+Example JSON output with `--tag-prefix v`:
 
 ```json
-{"currentVersion":"0.14.0","version":"0.14.1","createNewTag":"true","createNewRelease":"false","bump":"patch"}
+{"currentVersion":"v0.14.0","version":"v0.14.1","createNewTag":"true","createNewRelease":"false","bump":"patch"}
 ```
 
 `createNewTag` decides whether the workflow should create a semver tag.

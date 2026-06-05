@@ -48,15 +48,21 @@ jobs:
           test "${{ steps.get-next-version-minor.outputs.createNewTag }}" = "true"
           test "${{ steps.get-next-version-minor.outputs.createNewRelease }}" = "true"
 
+      - name: Create temp prefixed baseline tag
+        run: git tag -f v1.2.3
+
       - name: Run local action for patch bump
         id: get-next-version-patch
         uses: ./
         with:
           subjects: "docs: exercise patch tag output"
+          tag_prefix: "v"
 
       - name: Assert patch bump outputs
         run: |
           test "${{ steps.get-next-version-patch.outputs.bump }}" = "patch"
+          test "${{ steps.get-next-version-patch.outputs.currentVersion }}" = "v1.2.3"
+          test "${{ steps.get-next-version-patch.outputs.version }}" = "v1.2.4"
           test "${{ steps.get-next-version-patch.outputs.createNewTag }}" = "true"
           test "${{ steps.get-next-version-patch.outputs.createNewRelease }}" = "false"
 

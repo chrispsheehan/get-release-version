@@ -75,16 +75,28 @@ def parse_release_bumps(raw: str) -> list[str]:
     return bumps
 
 
-def latest_semver_tag() -> str:
+def parse_tag_version(tag: str, tag_prefix: str) -> SemVer | None:
+    if tag_prefix:
+        if not tag.startswith(tag_prefix):
+            return None
+        tag = tag[len(tag_prefix) :]
+    return SemVer.parse(tag)
+
+
+def format_tag(version: SemVer, tag_prefix: str) -> str:
+    return f"{tag_prefix}{version}"
+
+
+def latest_semver_tag(tag_prefix: str) -> str:
     tags = git("tag", "--merged", "HEAD", "--sort=-v:refname").splitlines()
     for tag in tags:
-        if SEMVER_RE.fullmatch(tag):
+        if parse_tag_version(tag, tag_prefix):
             return tag
-    return "0.0.0"
+    return f"{tag_prefix}0.0.0"
 
 
 def commit_subjects_since(tag: str) -> list[str]:
-    if tag == "0.0.0" and not has_real_tag(tag):
+    if not has_real_tag(tag):
         output = git("log", "--pretty=format:%s")
     else:
         output = git("log", f"{tag}..HEAD", "--pretty=format:%s")
@@ -131,7 +143,7 @@ def write_output(name: str, value: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compute the next semver version from commit subject prefixes since the latest semver tag."
+        description="Compute the next semver tag from commit subject prefixes since the latest semver tag."
     )
     parser.add_argument(
         "--subjects",
@@ -159,6 +171,11 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated bump levels that should create a full release.",
     )
     parser.add_argument(
+        "--tag-prefix",
+        default=os.environ.get("TAG_PREFIX", ""),
+        help="Optional prefix for semver tags, for example 'v' for tags like v1.2.3.",
+    )
+    parser.add_argument(
         "--format",
         choices=("json", "text"),
         default="json",
@@ -173,8 +190,8 @@ def main() -> int:
     if not (workspace / ".git").exists():
         raise RuntimeError(f"Not a git repository: {workspace}")
     ensure_safe_directory()
-    current_tag = latest_semver_tag()
-    current_version = SemVer.parse(current_tag) or SemVer(0, 0, 0)
+    current_tag = latest_semver_tag(args.tag_prefix)
+    current_version = parse_tag_version(current_tag, args.tag_prefix) or SemVer(0, 0, 0)
     subjects = [line.strip() for line in args.subjects.splitlines() if line.strip()]
     if not subjects:
         subjects = commit_subjects_since(current_tag)
@@ -186,10 +203,10 @@ def main() -> int:
         patch=parse_prefixes(args.patch_prefixes),
     )
 
-    next_version = str(current_version.bump(bump)) if bump else str(current_version)
+    next_version = format_tag(current_version.bump(bump), args.tag_prefix) if bump else current_tag
     release_bumps = set(parse_release_bumps(args.release_bumps))
     payload = {
-        "currentVersion": str(current_version),
+        "currentVersion": current_tag,
         "version": next_version,
         "createNewTag": "true" if bump else "false",
         "createNewRelease": "true" if bump in release_bumps else "false",
