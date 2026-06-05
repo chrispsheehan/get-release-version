@@ -95,12 +95,12 @@ def latest_semver_tag(tag_prefix: str) -> str:
     return f"{tag_prefix}0.0.0"
 
 
-def commit_subjects_since(tag: str) -> list[str]:
+def commit_messages_since(tag: str) -> list[str]:
     if not has_real_tag(tag):
-        output = git("log", "--pretty=format:%s")
+        output = git("log", "--pretty=format:%B%x00")
     else:
-        output = git("log", f"{tag}..HEAD", "--pretty=format:%s")
-    return [line.strip() for line in output.splitlines() if line.strip()]
+        output = git("log", f"{tag}..HEAD", "--pretty=format:%B%x00")
+    return [message.strip() for message in output.split("\x00") if message.strip()]
 
 
 def has_real_tag(tag: str) -> bool:
@@ -119,15 +119,18 @@ def classify_bump(subjects: list[str], *, major: list[str], minor: list[str], pa
     bump = None
     for subject in subjects:
         lowered = subject.lower()
+        if re.search(r"(^|\n)breaking[ -]change:", lowered):
+            return "major"
         prefix_segment = lowered.split(":", 1)[0]
+        subject_type = prefix_segment.removesuffix("!").split("(", 1)[0]
         if prefix_segment.endswith("!"):
             return "major"
-        if any(lowered.startswith(f"{prefix}:") for prefix in major):
+        if subject_type in major:
             return "major"
-        if any(lowered.startswith(f"{prefix}:") for prefix in minor):
+        if subject_type in minor:
             bump = "minor" if bump != "minor" else bump
             continue
-        if any(lowered.startswith(f"{prefix}:") for prefix in patch):
+        if subject_type in patch:
             if bump is None:
                 bump = "patch"
     return bump
@@ -152,22 +155,22 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--major-prefixes",
-        default=os.environ.get("MAJOR_PREFIXES", "breaking,feat,!feat"),
+        default=os.environ.get("MAJOR_PREFIXES", ""),
         help="Comma-separated commit prefixes that trigger a major bump.",
     )
     parser.add_argument(
         "--minor-prefixes",
-        default=os.environ.get("MINOR_PREFIXES", "minor,fix,patch"),
+        default=os.environ.get("MINOR_PREFIXES", "feat"),
         help="Comma-separated commit prefixes that trigger a minor bump.",
     )
     parser.add_argument(
         "--patch-prefixes",
-        default=os.environ.get("PATCH_PREFIXES", "chore,docs"),
+        default=os.environ.get("PATCH_PREFIXES", "fix"),
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(
         "--release-bumps",
-        default=os.environ.get("RELEASE_BUMPS", "major,minor"),
+        default=os.environ.get("RELEASE_BUMPS", "major,minor,patch"),
         help="Comma-separated bump levels that should create a full release.",
     )
     parser.add_argument(
@@ -194,7 +197,7 @@ def main() -> int:
     current_version = parse_tag_version(current_tag, args.tag_prefix) or SemVer(0, 0, 0)
     subjects = [line.strip() for line in args.subjects.splitlines() if line.strip()]
     if not subjects:
-        subjects = commit_subjects_since(current_tag)
+        subjects = commit_messages_since(current_tag)
 
     bump = classify_bump(
         subjects,

@@ -7,12 +7,14 @@ The `justfile` is only a local test harness; the Docker action itself runs the P
 Inside GitHub Actions, the script resolves the checkout from `GITHUB_WORKSPACE` rather than assuming a fixed Docker working directory.
 For local runs, `just local-test` sets `GITHUB_WORKSPACE` to the repository root before invoking the script.
 
+By default, this action follows the [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) versioning rules.
+
 Default prefix contract:
 
-- `major_prefixes`: `breaking,feat,!feat`
-- `minor_prefixes`: `minor,fix,patch`
-- `patch_prefixes`: `chore,docs`
-- `release_bumps`: `major,minor`
+- `major_prefixes`: empty string; major bumps are detected from `!` or `BREAKING CHANGE:` markers
+- `minor_prefixes`: `feat`
+- `patch_prefixes`: `fix`
+- `release_bumps`: `major,minor,patch`
 - `tag_prefix`: empty string
 
 Optional override:
@@ -28,9 +30,8 @@ Directly on your machine:
 
 ```sh
 just local-test \
-  --major-prefixes breaking,feat,!feat \
-  --minor-prefixes minor,fix,patch \
-  --patch-prefixes chore,docs \
+  --minor-prefixes feat \
+  --patch-prefixes fix \
   --tag-prefix v
 ```
 
@@ -38,17 +39,18 @@ Functional tests:
 
 ```sh
 just functional-test \
-  --major-prefixes breaking,feat,!feat \
-  --minor-prefixes minor,fix,patch \
-  --patch-prefixes chore,docs
+  --minor-prefixes feat \
+  --patch-prefixes fix
 ```
 
 The functional tests cover:
 
-- direct pushes with patch, minor, and major prefixes
+- direct pushes with patch, minor, and breaking-change indicators
 - squash/rebase PR subjects
 - default merge-commit subjects that should not match
 - case-insensitive prefix matching
+- scoped commit types
+- `!` and `BREAKING CHANGE:` breaking-change markers
 - mixed commit lists where the highest bump level should win
 
 Workspace resolution unit test:
@@ -60,7 +62,7 @@ just unit-test
 Example JSON output with `--tag-prefix v`:
 
 ```json
-{"currentVersion":"v0.14.0","version":"v0.14.1","createNewTag":"true","createNewRelease":"false","bump":"patch"}
+{"currentVersion":"v0.14.0","version":"v0.14.1","createNewTag":"true","createNewRelease":"true","bump":"patch"}
 ```
 
 `createNewTag` decides whether the workflow should create a semver tag.

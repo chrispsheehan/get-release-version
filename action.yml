@@ -9,19 +9,19 @@ inputs:
   major_prefixes:
     description: "Comma-separated commit subject prefixes that trigger a major bump"
     required: false
-    default: "breaking,feat,!feat"
+    default: ""
   minor_prefixes:
     description: "Comma-separated commit subject prefixes that trigger a minor bump"
     required: false
-    default: "minor,fix,patch"
+    default: "feat"
   patch_prefixes:
     description: "Comma-separated commit subject prefixes that trigger a patch bump"
     required: false
-    default: "chore,docs"
+    default: "fix"
   release_bumps:
     description: "Comma-separated bump levels that create a full release"
     required: false
-    default: "major,minor"
+    default: "major,minor,patch"
   tag_prefix:
     description: "Optional prefix for semver tags, for example v for tags like v1.2.3"
     required: false

@@ -40,7 +40,7 @@ jobs:
         id: get-next-version-minor
         uses: ./
         with:
-          subjects: "fix: exercise local action end to end"
+          subjects: "feat: exercise local action end to end"
 
       - name: Assert minor bump outputs
         run: |
@@ -55,7 +55,7 @@ jobs:
         id: get-next-version-patch
         uses: ./
         with:
-          subjects: "docs: exercise patch tag output"
+          subjects: "fix: exercise patch tag output"
           tag_prefix: "v"
 
       - name: Assert patch bump outputs
@@ -64,7 +64,7 @@ jobs:
           test "${{ steps.get-next-version-patch.outputs.currentVersion }}" = "v1.2.3"
           test "${{ steps.get-next-version-patch.outputs.version }}" = "v1.2.4"
           test "${{ steps.get-next-version-patch.outputs.createNewTag }}" = "true"
-          test "${{ steps.get-next-version-patch.outputs.createNewRelease }}" = "false"
+          test "${{ steps.get-next-version-patch.outputs.createNewRelease }}" = "true"
 
       - name: Run local action for no matching bump
         id: get-next-version-none

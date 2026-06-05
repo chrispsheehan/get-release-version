@@ -10,7 +10,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from get_next_version import SemVer, format_tag, parse_release_bumps, parse_tag_version, resolve_workspace
+from get_next_version import (
+    SemVer,
+    classify_bump,
+    format_tag,
+    parse_release_bumps,
+    parse_tag_version,
+    resolve_workspace,
+)
 
 
 class WorkspaceResolutionTests(unittest.TestCase):
@@ -49,6 +56,35 @@ class ReleaseBumpTests(unittest.TestCase):
     def test_parse_release_bumps_rejects_unknown_levels(self) -> None:
         with self.assertRaises(ValueError):
             parse_release_bumps("major,tiny")
+
+
+class ClassifyBumpTests(unittest.TestCase):
+    def test_classify_bump_supports_conventional_commit_scopes(self) -> None:
+        self.assertEqual(
+            classify_bump(["feat(api): add reports"], major=[], minor=["feat"], patch=["fix"]),
+            "minor",
+        )
+        self.assertEqual(
+            classify_bump(["fix(parser): preserve whitespace"], major=[], minor=["feat"], patch=["fix"]),
+            "patch",
+        )
+
+    def test_classify_bump_supports_bang_breaking_change(self) -> None:
+        self.assertEqual(
+            classify_bump(["docs!: rewrite public api docs"], major=[], minor=["feat"], patch=["fix"]),
+            "major",
+        )
+
+    def test_classify_bump_supports_breaking_change_footer(self) -> None:
+        self.assertEqual(
+            classify_bump(
+                ["chore: update config\n\nBREAKING CHANGE: config file format changed"],
+                major=[],
+                minor=["feat"],
+                patch=["fix"],
+            ),
+            "major",
+        )
 
 
 class TagPrefixTests(unittest.TestCase):

@@ -17,32 +17,32 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--major-prefixes",
-        default="breaking,feat,!feat",
+        default="",
         help="Comma-separated commit prefixes that trigger a major bump.",
     )
     parser.add_argument(
         "--minor-prefixes",
-        default="minor,fix,patch",
+        default="feat",
         help="Comma-separated commit prefixes that trigger a minor bump.",
     )
     parser.add_argument(
         "--patch-prefixes",
-        default="chore,docs",
+        default="fix",
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(
         "--release-bumps",
-        default="major,minor",
+        default="major,minor,patch",
         help="Comma-separated bump levels that should create a full release.",
     )
     parser.add_argument(
         "--direct-subject",
-        default="chore: things",
+        default="fix: things",
         help="Example direct-push commit subject to validate.",
     )
     parser.add_argument(
         "--pr-subject",
-        default="fix: this and that",
+        default="feat: this and that",
         help="Example PR subject or squash/rebase commit subject to validate.",
     )
     parser.add_argument(
@@ -65,11 +65,21 @@ def format_bool(value: bool) -> str:
     return "yes" if value else "no"
 
 
+def format_list(values: object) -> str:
+    assert isinstance(values, list)
+    return ", ".join(values) if values else "(none)"
+
+
+def format_message(message: object) -> str:
+    lines = [line.strip() for line in str(message).splitlines() if line.strip()]
+    return " | ".join(lines)
+
+
 def format_subject(check: dict[str, object]) -> str:
     subjects = check.get("subjects")
     if isinstance(subjects, list):
-        return " | ".join(str(subject) for subject in subjects)
-    return str(check["subject"])
+        return " | ".join(format_message(subject) for subject in subjects)
+    return format_message(check["subject"])
 
 
 def print_report(payload: dict[str, object]) -> None:
@@ -79,10 +89,10 @@ def print_report(payload: dict[str, object]) -> None:
     print("Functional versioning tests")
     print()
     print("Configuration:")
-    print(f"  major prefixes: {', '.join(payload['major_prefixes'])}")
-    print(f"  minor prefixes: {', '.join(payload['minor_prefixes'])}")
-    print(f"  patch prefixes: {', '.join(payload['patch_prefixes'])}")
-    print(f"  release bumps:   {', '.join(payload['release_bumps'])}")
+    print(f"  major prefixes: {format_list(payload['major_prefixes'])}")
+    print(f"  minor prefixes: {format_list(payload['minor_prefixes'])}")
+    print(f"  patch prefixes: {format_list(payload['patch_prefixes'])}")
+    print(f"  release bumps:   {format_list(payload['release_bumps'])}")
     print()
     print("Checks:")
 
@@ -141,7 +151,7 @@ def main() -> int:
             "name": "minor_direct_push",
             "subject": "feat: add reports endpoint",
             "expected_create_tag": True,
-            "expected_bump": "major",
+            "expected_bump": "minor",
             "actual_bump": bump_for("feat: add reports endpoint", major=major, minor=minor, patch=patch),
         },
         {
@@ -165,26 +175,51 @@ def main() -> int:
             "actual_bump": bump_for("fix!: remove deprecated response field", major=major, minor=minor, patch=patch),
         },
         {
+            "name": "breaking_change_footer",
+            "subject": "chore: update config\n\nBREAKING CHANGE: config format changed",
+            "expected_create_tag": True,
+            "expected_bump": "major",
+            "actual_bump": bump_for(
+                "chore: update config\n\nBREAKING CHANGE: config format changed",
+                major=major,
+                minor=minor,
+                patch=patch,
+            ),
+        },
+        {
             "name": "unmatched_subject",
             "subject": "docs: update readme",
-            "expected_create_tag": True,
-            "expected_bump": "patch",
+            "expected_create_tag": False,
             "actual_bump": bump_for("docs: update readme", major=major, minor=minor, patch=patch),
         },
         {
             "name": "case_insensitive_prefix",
             "subject": "Fix: preserve compatibility",
             "expected_create_tag": True,
-            "expected_bump": "minor",
+            "expected_bump": "patch",
             "actual_bump": bump_for("Fix: preserve compatibility", major=major, minor=minor, patch=patch),
         },
         {
-            "name": "multi_commit_highest_bump_wins",
-            "subjects": ["chore: tidy", "feat: add billing", "fix: patch worker"],
+            "name": "scoped_feat",
+            "subject": "feat(api): add billing endpoint",
             "expected_create_tag": True,
-            "expected_bump": "major",
+            "expected_bump": "minor",
+            "actual_bump": bump_for("feat(api): add billing endpoint", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "scoped_fix",
+            "subject": "fix(parser): preserve whitespace",
+            "expected_create_tag": True,
+            "expected_bump": "patch",
+            "actual_bump": bump_for("fix(parser): preserve whitespace", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "multi_commit_highest_bump_wins",
+            "subjects": ["docs: tidy", "feat: add billing", "fix: patch worker"],
+            "expected_create_tag": True,
+            "expected_bump": "minor",
             "actual_bump": bump_for_subjects(
-                ["chore: tidy", "feat: add billing", "fix: patch worker"],
+                ["docs: tidy", "feat: add billing", "fix: patch worker"],
                 major=major,
                 minor=minor,
                 patch=patch,
@@ -192,11 +227,11 @@ def main() -> int:
         },
         {
             "name": "multi_commit_major_overrides_minor_patch",
-            "subjects": ["fix: patch worker", "feat: add billing", "major: remove legacy api"],
+            "subjects": ["fix: patch worker", "feat: add billing", "chore!: remove legacy api"],
             "expected_create_tag": True,
             "expected_bump": "major",
             "actual_bump": bump_for_subjects(
-                ["fix: patch worker", "feat: add billing", "major: remove legacy api"],
+                ["fix: patch worker", "feat: add billing", "chore!: remove legacy api"],
                 major=major,
                 minor=minor,
                 patch=patch,
