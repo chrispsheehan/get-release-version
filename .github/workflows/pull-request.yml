@@ -81,6 +81,16 @@ jobs:
         with:
           subjects: "feat: exercise local action end to end"
 
+      - name: Show action outputs
+        run: |
+          echo "currentVersion=${{ steps.get-next-version-minor.outputs.currentVersion }}"
+          echo "version=${{ steps.get-next-version-minor.outputs.version }}"
+          echo "createNewTag=${{ steps.get-next-version-minor.outputs.createNewTag }}"
+          echo "createNewRelease=${{ steps.get-next-version-minor.outputs.createNewRelease }}"
+          echo "majorAlias=${{ steps.get-next-version-minor.outputs.majorAlias }}"
+          echo "createMajorAlias=${{ steps.get-next-version-minor.outputs.createMajorAlias }}"
+          echo "bump=${{ steps.get-next-version-minor.outputs.bump }}"
+
       - name: Assert minor bump outputs
         run: |
           test "${{ steps.get-next-version-minor.outputs.bump }}" = "minor"
