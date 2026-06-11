@@ -39,8 +39,9 @@ jobs:
           echo "::error::❌ PR title must start with one of: $ALLOWED_PREFIXES"
           exit 1
 
-  tests:
+  test:
     runs-on: ubuntu-latest
+    name: Run Tests
 
     steps:
       - uses: actions/checkout@v6
@@ -53,11 +54,11 @@ jobs:
       - name: Run functional tests
         run: python tests/test_functional_versioning.py
 
-  test-next-version-action:
+  show-next-version:
     name: Next Version Action
     needs:
       - check-pr-title
-      - tests
+      - test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
