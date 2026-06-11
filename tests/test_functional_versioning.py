@@ -15,6 +15,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from get_next_version import classify_bump, parse_prefixes, parse_release_bumps
 
 
+TEST_DIR = Path(__file__).resolve().parent
+REPO_ROOT = TEST_DIR.parent
+OUTPUT_SCENARIOS_PATH = TEST_DIR / "functional_output_scenarios.json"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run functional checks for commit-prefix versioning behavior."
@@ -90,15 +95,21 @@ def create_repo_with_tag(tag: str | None) -> tuple[tempfile.TemporaryDirectory[s
 def run_action_entrypoint(repo: Path, *args: str) -> dict[str, str]:
     git_config_global = tempfile.NamedTemporaryFile(delete=False)
     git_config_global.close()
+    command_env = os.environ.copy()
+    command_env.pop("GITHUB_OUTPUT", None)
+    command_env.update(
+        {
+            "GITHUB_WORKSPACE": str(repo),
+            "GIT_CONFIG_GLOBAL": git_config_global.name,
+        }
+    )
     try:
-        output = run_command(
-            [sys.executable, str(Path(__file__).resolve().parents[1] / "get_next_version.py"), *args],
+        output = subprocess.check_output(
+            [sys.executable, str(REPO_ROOT / "get_next_version.py"), *args],
             cwd=repo,
-            env={
-                "GITHUB_WORKSPACE": str(repo),
-                "GIT_CONFIG_GLOBAL": git_config_global.name,
-            },
-        )
+            env=command_env,
+            text=True,
+        ).strip()
     finally:
         Path(git_config_global.name).unlink(missing_ok=True)
     payload = json.loads(output)
@@ -179,99 +190,35 @@ def assert_payload(name: str, actual: dict[str, str], expected: dict[str, str]) 
     }
 
 
-def run_output_checks() -> list[dict[str, object]]:
-    scenarios = [
-        (
-            "patch_from_existing_tag",
-            "1.2.3",
-            ["--subjects", "fix: exercise patch tag output"],
-            {
-                "currentVersion": "1.2.3",
-                "version": "1.2.4",
-                "createNewTag": "true",
-                "createNewRelease": "true",
-                "majorAlias": "",
-                "createMajorAlias": "false",
-                "bump": "patch",
-            },
-        ),
-        (
-            "short_tag_normalization",
-            "1.1",
-            ["--subjects", "fix: exercise short tag output"],
-            {
-                "currentVersion": "1.1",
-                "version": "1.1.1",
-                "createNewTag": "true",
-                "createNewRelease": "true",
-                "majorAlias": "",
-                "createMajorAlias": "false",
-                "bump": "patch",
-            },
-        ),
-        (
-            "ignore_non_semver_tag",
-            "prod",
-            ["--subjects", "fix: exercise string tag ignore"],
-            {
-                "currentVersion": "0.0.1",
-                "version": "0.0.2",
-                "createNewTag": "true",
-                "createNewRelease": "true",
-                "majorAlias": "",
-                "createMajorAlias": "false",
-                "bump": "patch",
-            },
-        ),
-        (
-            "v1_major_alias",
-            "v0.0.1",
-            ["--subjects", "feat!: publish v1 action release", "--tag-prefix", "v", "--major-alias", "true"],
-            {
-                "currentVersion": "v0.0.1",
-                "version": "v1.0.0",
-                "createNewTag": "true",
-                "createNewRelease": "true",
-                "majorAlias": "v1",
-                "createMajorAlias": "true",
-                "bump": "major",
-            },
-        ),
-        (
-            "v2_major_alias",
-            "v1.0.0",
-            ["--subjects", "feat!: publish v2 action release", "--tag-prefix", "v", "--major-alias", "true"],
-            {
-                "currentVersion": "v1.0.0",
-                "version": "v2.0.0",
-                "createNewTag": "true",
-                "createNewRelease": "true",
-                "majorAlias": "v2",
-                "createMajorAlias": "true",
-                "bump": "major",
-            },
-        ),
-        (
-            "major_alias_default_disabled",
-            "v0.0.1",
-            ["--subjects", "feat!: publish v1 action release", "--tag-prefix", "v"],
-            {
-                "currentVersion": "v0.0.1",
-                "version": "v1.0.0",
-                "createNewTag": "true",
-                "createNewRelease": "true",
-                "majorAlias": "",
-                "createMajorAlias": "false",
-                "bump": "major",
-            },
-        ),
-    ]
+def load_output_scenarios() -> list[dict[str, object]]:
+    with OUTPUT_SCENARIOS_PATH.open(encoding="utf-8") as handle:
+        scenarios = json.load(handle)
+    if not isinstance(scenarios, list):
+        raise TypeError(f"{OUTPUT_SCENARIOS_PATH} must contain a JSON array")
+    return scenarios
 
+
+def run_output_checks() -> list[dict[str, object]]:
     results = []
-    for name, tag, action_args, expected in scenarios:
+    for scenario in load_output_scenarios():
+        if not isinstance(scenario, dict):
+            raise TypeError("Each output scenario must be a JSON object")
+        name = scenario["name"]
+        tag = scenario["tag"]
+        action_args = scenario["args"]
+        expected = scenario["expected"]
+        if not isinstance(name, str):
+            raise TypeError("Scenario name must be a string")
+        if tag is not None and not isinstance(tag, str):
+            raise TypeError(f"Scenario {name} tag must be a string or null")
+        if not isinstance(action_args, list) or not all(isinstance(arg, str) for arg in action_args):
+            raise TypeError(f"Scenario {name} args must be a string array")
+        if not isinstance(expected, dict) or not all(isinstance(key, str) for key in expected):
+            raise TypeError(f"Scenario {name} expected must be an object")
+        expected_payload = {str(key): str(value) for key, value in expected.items()}
         tmp, repo = create_repo_with_tag(tag)
         try:
-            results.append(assert_payload(name, run_action_entrypoint(repo, *action_args), expected))
+            results.append(assert_payload(name, run_action_entrypoint(repo, *action_args), expected_payload))
         finally:
             tmp.cleanup()
     return results
