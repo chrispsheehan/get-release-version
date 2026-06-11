@@ -28,6 +28,7 @@ Default versioning contract:
 - patch: commits with type `fix`
 - `release_bumps`: `major,minor,patch`
 - `tag_prefix`: empty string
+- `major_tag`: `true`
 - when no matching semver tag exists, `currentVersion` falls back to `0.0.1` with the configured prefix
 
 ---
@@ -42,6 +43,7 @@ Default versioning contract:
 | `patch_prefixes` | Comma-separated commit subject prefixes that trigger a patch bump               | ❌        | `fix`                 |
 | `release_bumps`  | Comma-separated bump levels that create a full release                          | ❌        | `major,minor,patch`   |
 | `tag_prefix`     | Optional prefix for semver tags, for example `v` for tags like `v1.2.3`         | ❌        | `""`                  |
+| `major_tag`      | Whether to output a moving major-version tag for non-zero major releases        | ❌        | `true`                |
 
 Optional override behavior:
 
@@ -49,6 +51,7 @@ Optional override behavior:
 - `major_prefixes`, `minor_prefixes`, and `patch_prefixes` classify commit types differently from the defaults.
 - `release_bumps` limits which bump levels create full release work while still allowing other matching subjects to create tags.
 - `tag_prefix` discovers matching prefixed tags and emits versions with the same prefix.
+- `major_tag` controls whether `majorTag` and `createMajorTag` are populated for releases like `v1.0.0`.
 
 ---
 
@@ -60,10 +63,13 @@ Optional override behavior:
 | `version`          | Next semver tag when a matching commit exists, otherwise the current tag     |
 | `createNewTag`     | Whether a new semver tag should be created                                  |
 | `createNewRelease` | Whether the resolved bump level should create full release work             |
+| `majorTag`         | Moving major-version tag for the resolved version, for example `v1`         |
+| `createMajorTag`   | Whether the moving major-version tag should be created or updated           |
 | `bump`             | Resolved bump level, or empty when no matching commit exists                |
 
 `createNewTag` decides whether the workflow should create a semver tag.
 `createNewRelease` decides whether the workflow should run full release work for the resolved bump level.
+`createMajorTag` decides whether the workflow should create or update the `majorTag` alias.
 
 ---
 
@@ -111,14 +117,16 @@ jobs:
       - name: Show preview
         run: |
           echo "version=${{ steps.get-release-version.outputs.version }}"
+          echo "majorTag=${{ steps.get-release-version.outputs.majorTag }}"
           echo "createNewTag=${{ steps.get-release-version.outputs.createNewTag }}"
           echo "createNewRelease=${{ steps.get-release-version.outputs.createNewRelease }}"
+          echo "createMajorTag=${{ steps.get-release-version.outputs.createMajorTag }}"
 ```
 
 Example JSON output:
 
 ```json
-{"currentVersion":"0.14.0","version":"0.14.1","createNewTag":"true","createNewRelease":"true","bump":"patch"}
+{"currentVersion":"v0.0.1","version":"v1.0.0","createNewTag":"true","createNewRelease":"true","majorTag":"v1","createMajorTag":"true","bump":"major"}
 ```
 
 ---
@@ -161,7 +169,9 @@ just unit-test
 
 ## Publishing
 
-The `push-on-main` workflow runs tests, calculates the next release tag with `tag_prefix: v`, publishes that tag, and force-updates the `v1` tag to the same commit. Keeping `v1` current lets users pin the action as:
+The `push-on-main` workflow runs tests, calculates the next release tag with `tag_prefix: v`, and publishes that tag. By default, `UPDATE_MAJOR_TAG` is `true`, so tags like `v1.0.0` also force-update the matching moving major tag, `v1`, to the same commit. Major aliases are skipped for `v0.x.x` tags.
+
+Keeping `v1` current lets users pin the action as:
 
 ```yaml
 uses: chrispsheehan/get-release-version@v1

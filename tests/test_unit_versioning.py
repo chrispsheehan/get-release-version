@@ -14,8 +14,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from get_next_version import (
     SemVer,
     classify_bump,
+    format_major_tag,
     format_tag,
     latest_semver_tag,
+    parse_bool,
     parse_release_bumps,
     parse_tag_version,
     resolve_workspace,
@@ -58,6 +60,20 @@ class ReleaseBumpTests(unittest.TestCase):
     def test_parse_release_bumps_rejects_unknown_levels(self) -> None:
         with self.assertRaises(ValueError):
             parse_release_bumps("major,tiny")
+
+
+class BoolInputTests(unittest.TestCase):
+    def test_parse_bool_accepts_common_true_values(self) -> None:
+        for value in ("true", "True", "1", "yes", "on"):
+            self.assertTrue(parse_bool(value))
+
+    def test_parse_bool_accepts_common_false_values(self) -> None:
+        for value in ("false", "False", "0", "no", "off"):
+            self.assertFalse(parse_bool(value))
+
+    def test_parse_bool_rejects_unknown_values(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_bool("maybe")
 
 
 class ClassifyBumpTests(unittest.TestCase):
@@ -109,6 +125,10 @@ class TagPrefixTests(unittest.TestCase):
     def test_format_tag_applies_configured_prefix(self) -> None:
         self.assertEqual(format_tag(SemVer(1, 2, 3), "v"), "v1.2.3")
         self.assertEqual(format_tag(SemVer(1, 2, 3), ""), "1.2.3")
+
+    def test_format_major_tag_applies_configured_prefix(self) -> None:
+        self.assertEqual(format_major_tag(SemVer(1, 2, 3), "v"), "v1")
+        self.assertEqual(format_major_tag(SemVer(1, 2, 3), ""), "1")
 
 
 class LatestSemverTagTests(unittest.TestCase):

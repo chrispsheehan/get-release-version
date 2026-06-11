@@ -3,11 +3,11 @@ description: "Compute the next semver tag from commit subject prefixes since the
 
 inputs:
   subjects:
-    description: "Optional newline-delimited commit subjects to classify instead of reading git history"
+    description: "Optional PR title or newline-delimited commit subjects to classify instead of reading git history"
     required: false
     default: ""
   major_prefixes:
-    description: "Comma-separated commit subject prefixes that trigger a major bump"
+    description: "Comma-separated custom commit types that trigger a major bump. Conventional Commit breaking markers such as feat!:, fix(scope)!:, and BREAKING CHANGE: are handled automatically."
     required: false
     default: ""
   minor_prefixes:
@@ -26,6 +26,10 @@ inputs:
     description: "Optional prefix for semver tags, for example v for tags like v1.2.3"
     required: false
     default: ""
+  major_tag:
+    description: "Whether to output a moving major-version tag for non-zero major releases"
+    required: false
+    default: "true"
 
 outputs:
   version:
@@ -36,6 +40,10 @@ outputs:
     description: "Whether the resolved bump level should create a full release"
   currentVersion:
     description: "Latest semver tag discovered on the current branch, or 0.0.1 with the configured prefix if none exists"
+  majorTag:
+    description: "Moving major-version tag for the resolved version, for example v1, or empty when disabled or below 1.0.0"
+  createMajorTag:
+    description: "Whether the moving major-version tag should be created or updated"
   bump:
     description: "Resolved bump level: major, minor, patch, or empty when no matching commit exists"
 
@@ -55,3 +63,5 @@ runs:
     - ${{ inputs.release_bumps }}
     - --tag-prefix
     - ${{ inputs.tag_prefix }}
+    - --major-tag
+    - ${{ inputs.major_tag }}
