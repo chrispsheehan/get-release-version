@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
+import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from get_next_version import classify_bump, parse_prefixes, parse_release_bumps
+
+
+TEST_DIR = Path(__file__).resolve().parent
+REPO_ROOT = TEST_DIR.parent
+OUTPUT_SCENARIOS_PATH = TEST_DIR / "functional_output_scenarios.json"
+PR_TITLE_RE = re.compile(r"^(feat|fix|chore|docs)(\([A-Za-z0-9._/-]+\))?!?: .+")
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,6 +70,57 @@ def bump_for(subject: str, *, major: list[str], minor: list[str], patch: list[st
 
 def bump_for_subjects(subjects: list[str], *, major: list[str], minor: list[str], patch: list[str]) -> str:
     return classify_bump(subjects, major=major, minor=minor, patch=patch) or ""
+
+
+def is_allowed_pr_title(title: str) -> bool:
+    return bool(PR_TITLE_RE.fullmatch(title))
+
+
+def run_command(args: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> str:
+    command_env = os.environ.copy()
+    if env:
+        command_env.update(env)
+    return subprocess.check_output(args, cwd=cwd, env=command_env, text=True).strip()
+
+
+def create_repo_with_tag(tag: str | None) -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    tmp = tempfile.TemporaryDirectory()
+    repo = Path(tmp.name) / "repo"
+    repo.mkdir()
+    run_command(["git", "init"], cwd=repo)
+    run_command(["git", "config", "user.name", "Functional Test"], cwd=repo)
+    run_command(["git", "config", "user.email", "functional@example.invalid"], cwd=repo)
+    (repo / "file.txt").write_text("test\n", encoding="utf-8")
+    run_command(["git", "add", "file.txt"], cwd=repo)
+    run_command(["git", "-c", "commit.gpgsign=false", "commit", "-m", "docs: initial"], cwd=repo)
+    if tag:
+        run_command(["git", "tag", tag], cwd=repo)
+    return tmp, repo
+
+
+def run_action_entrypoint(repo: Path, *args: str) -> dict[str, str]:
+    git_config_global = tempfile.NamedTemporaryFile(delete=False)
+    git_config_global.close()
+    command_env = os.environ.copy()
+    command_env.pop("GITHUB_OUTPUT", None)
+    command_env.update(
+        {
+            "GITHUB_WORKSPACE": str(repo),
+            "GIT_CONFIG_GLOBAL": git_config_global.name,
+        }
+    )
+    try:
+        output = subprocess.check_output(
+            [sys.executable, str(REPO_ROOT / "get_next_version.py"), *args],
+            cwd=repo,
+            env=command_env,
+            text=True,
+        ).strip()
+    finally:
+        Path(git_config_global.name).unlink(missing_ok=True)
+    payload = json.loads(output)
+    assert isinstance(payload, dict)
+    return {str(key): str(value) for key, value in payload.items()}
 
 
 def format_bool(value: bool) -> str:
@@ -117,6 +179,74 @@ def print_report(payload: dict[str, object]) -> None:
     passed = sum(1 for check in checks if isinstance(check, dict) and check["passes"])
     print()
     print(f"Summary: {passed}/{len(checks)} checks passed")
+
+
+def assert_payload(name: str, actual: dict[str, str], expected: dict[str, str]) -> dict[str, object]:
+    failures = [
+        f"{key}: expected {expected_value!r}, got {actual.get(key)!r}"
+        for key, expected_value in expected.items()
+        if actual.get(key) != expected_value
+    ]
+    return {
+        "name": name,
+        "actual": actual,
+        "expected": expected,
+        "passes": not failures,
+        "failures": failures,
+    }
+
+
+def load_output_scenarios() -> list[dict[str, object]]:
+    with OUTPUT_SCENARIOS_PATH.open(encoding="utf-8") as handle:
+        scenarios = json.load(handle)
+    if not isinstance(scenarios, list):
+        raise TypeError(f"{OUTPUT_SCENARIOS_PATH} must contain a JSON array")
+    return scenarios
+
+
+def run_output_checks() -> list[dict[str, object]]:
+    results = []
+    for scenario in load_output_scenarios():
+        if not isinstance(scenario, dict):
+            raise TypeError("Each output scenario must be a JSON object")
+        name = scenario["name"]
+        tag = scenario["tag"]
+        action_args = scenario["args"]
+        expected = scenario["expected"]
+        if not isinstance(name, str):
+            raise TypeError("Scenario name must be a string")
+        if tag is not None and not isinstance(tag, str):
+            raise TypeError(f"Scenario {name} tag must be a string or null")
+        if not isinstance(action_args, list) or not all(isinstance(arg, str) for arg in action_args):
+            raise TypeError(f"Scenario {name} args must be a string array")
+        if not isinstance(expected, dict) or not all(isinstance(key, str) for key in expected):
+            raise TypeError(f"Scenario {name} expected must be an object")
+        expected_payload = {str(key): str(value) for key, value in expected.items()}
+        tmp, repo = create_repo_with_tag(tag)
+        try:
+            results.append(assert_payload(name, run_action_entrypoint(repo, *action_args), expected_payload))
+        finally:
+            tmp.cleanup()
+    return results
+
+
+def run_pr_title_checks() -> list[dict[str, object]]:
+    scenarios = [
+        ("feat_title", "feat: add output", True),
+        ("breaking_scoped_feat_title", "feat(v1)!: docs update", True),
+        ("scoped_fix_title", "fix(parser): preserve whitespace", True),
+        ("docs_title", "docs: update readme", True),
+        ("unsupported_type", "refactor: simplify parser", False),
+        ("missing_space_after_colon", "feat(v1)!:docs update", False),
+    ]
+    return [
+        {
+            "name": name,
+            "passes": is_allowed_pr_title(title) == expected,
+            "failures": [] if is_allowed_pr_title(title) == expected else [f"{title!r} expected {expected}"],
+        }
+        for name, title, expected in scenarios
+    ]
 
 
 def main() -> int:
@@ -255,7 +385,34 @@ def main() -> int:
     }
 
     print_report(payload)
-    return 0 if payload["all_passed"] else 1
+
+    output_checks = run_output_checks()
+    print()
+    print("Output checks:")
+    for check in output_checks:
+        status = "PASS" if check["passes"] else "FAIL"
+        print(f"  [{status}] {check['name']}")
+        for failure in check["failures"]:
+            print(f"        {failure}")
+
+    all_output_checks_passed = all(check["passes"] for check in output_checks)
+    print()
+    print(f"Output summary: {sum(1 for check in output_checks if check['passes'])}/{len(output_checks)} checks passed")
+
+    pr_title_checks = run_pr_title_checks()
+    print()
+    print("PR title checks:")
+    for check in pr_title_checks:
+        status = "PASS" if check["passes"] else "FAIL"
+        print(f"  [{status}] {check['name']}")
+        for failure in check["failures"]:
+            print(f"        {failure}")
+
+    all_pr_title_checks_passed = all(check["passes"] for check in pr_title_checks)
+    print()
+    print(f"PR title summary: {sum(1 for check in pr_title_checks if check['passes'])}/{len(pr_title_checks)} checks passed")
+
+    return 0 if payload["all_passed"] and all_output_checks_passed and all_pr_title_checks_passed else 1
 
 
 if __name__ == "__main__":

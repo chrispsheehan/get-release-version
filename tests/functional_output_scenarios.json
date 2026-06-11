@@ -1,0 +1,86 @@
+[
+  {
+    "name": "patch_from_existing_tag",
+    "tag": "1.2.3",
+    "args": ["--subjects", "fix: exercise patch tag output"],
+    "expected": {
+      "currentVersion": "1.2.3",
+      "version": "1.2.4",
+      "createNewTag": "true",
+      "createNewRelease": "true",
+      "majorAlias": "",
+      "createMajorAlias": "false",
+      "bump": "patch"
+    }
+  },
+  {
+    "name": "short_tag_normalization",
+    "tag": "1.1",
+    "args": ["--subjects", "fix: exercise short tag output"],
+    "expected": {
+      "currentVersion": "1.1",
+      "version": "1.1.1",
+      "createNewTag": "true",
+      "createNewRelease": "true",
+      "majorAlias": "",
+      "createMajorAlias": "false",
+      "bump": "patch"
+    }
+  },
+  {
+    "name": "ignore_non_semver_tag",
+    "tag": "prod",
+    "args": ["--subjects", "fix: exercise string tag ignore"],
+    "expected": {
+      "currentVersion": "0.0.1",
+      "version": "0.0.2",
+      "createNewTag": "true",
+      "createNewRelease": "true",
+      "majorAlias": "",
+      "createMajorAlias": "false",
+      "bump": "patch"
+    }
+  },
+  {
+    "name": "v1_major_alias",
+    "tag": "v0.0.1",
+    "args": ["--subjects", "feat!: publish v1 action release", "--tag-prefix", "v", "--major-alias", "true"],
+    "expected": {
+      "currentVersion": "v0.0.1",
+      "version": "v1.0.0",
+      "createNewTag": "true",
+      "createNewRelease": "true",
+      "majorAlias": "v1",
+      "createMajorAlias": "true",
+      "bump": "major"
+    }
+  },
+  {
+    "name": "v2_major_alias",
+    "tag": "v1.0.0",
+    "args": ["--subjects", "feat!: publish v2 action release", "--tag-prefix", "v", "--major-alias", "true"],
+    "expected": {
+      "currentVersion": "v1.0.0",
+      "version": "v2.0.0",
+      "createNewTag": "true",
+      "createNewRelease": "true",
+      "majorAlias": "v2",
+      "createMajorAlias": "true",
+      "bump": "major"
+    }
+  },
+  {
+    "name": "major_alias_default_disabled",
+    "tag": "v0.0.1",
+    "args": ["--subjects", "feat!: publish v1 action release", "--tag-prefix", "v"],
+    "expected": {
+      "currentVersion": "v0.0.1",
+      "version": "v1.0.0",
+      "createNewTag": "true",
+      "createNewRelease": "true",
+      "majorAlias": "",
+      "createMajorAlias": "false",
+      "bump": "major"
+    }
+  }
+]

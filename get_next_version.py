@@ -76,6 +76,15 @@ def parse_release_bumps(raw: str) -> list[str]:
     return bumps
 
 
+def parse_bool(raw: str) -> bool:
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"Expected a boolean value, got: {raw}")
+
+
 def parse_tag_version(tag: str, tag_prefix: str) -> SemVer | None:
     if tag_prefix:
         if not tag.startswith(tag_prefix):
@@ -86,6 +95,10 @@ def parse_tag_version(tag: str, tag_prefix: str) -> SemVer | None:
 
 def format_tag(version: SemVer, tag_prefix: str) -> str:
     return f"{tag_prefix}{version}"
+
+
+def format_major_alias(version: SemVer, tag_prefix: str) -> str:
+    return f"{tag_prefix}{version.major}"
 
 
 def latest_semver_tag(tag_prefix: str) -> str:
@@ -152,12 +165,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--subjects",
         default=os.environ.get("SUBJECTS", ""),
-        help="Optional newline-delimited commit subjects to classify instead of reading git history.",
+        help="Optional PR title or newline-delimited commit subjects to classify instead of reading git history.",
     )
     parser.add_argument(
         "--major-prefixes",
         default=os.environ.get("MAJOR_PREFIXES", ""),
-        help="Comma-separated commit prefixes that trigger a major bump.",
+        help="Comma-separated custom commit types that trigger a major bump.",
     )
     parser.add_argument(
         "--minor-prefixes",
@@ -178,6 +191,11 @@ def parse_args() -> argparse.Namespace:
         "--tag-prefix",
         default=os.environ.get("TAG_PREFIX", ""),
         help="Optional prefix for semver tags, for example 'v' for tags like v1.2.3.",
+    )
+    parser.add_argument(
+        "--major-alias",
+        default=os.environ.get("MAJOR_ALIAS", "false"),
+        help="Whether to output a moving major-version alias for non-zero major releases.",
     )
     parser.add_argument(
         "--format",
@@ -207,13 +225,17 @@ def main() -> int:
         patch=parse_prefixes(args.patch_prefixes),
     )
 
-    next_version = format_tag(current_version.bump(bump), args.tag_prefix) if bump else current_tag
+    next_semver = current_version.bump(bump) if bump else current_version
+    next_version = format_tag(next_semver, args.tag_prefix) if bump else current_tag
+    create_major_alias = bool(bump) and parse_bool(args.major_alias) and next_semver.major > 0
     release_bumps = set(parse_release_bumps(args.release_bumps))
     payload = {
         "currentVersion": current_tag,
         "version": next_version,
         "createNewTag": "true" if bump else "false",
         "createNewRelease": "true" if bump in release_bumps else "false",
+        "majorAlias": format_major_alias(next_semver, args.tag_prefix) if create_major_alias else "",
+        "createMajorAlias": "true" if create_major_alias else "false",
         "bump": bump or "",
     }
 
