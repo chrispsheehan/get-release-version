@@ -26,10 +26,10 @@ inputs:
     description: "Optional prefix for semver tags, for example v for tags like v1.2.3"
     required: false
     default: ""
-  major_tag:
-    description: "Whether to output a moving major-version tag for non-zero major releases"
+  major_alias:
+    description: "Whether to output a moving major-version alias for non-zero major releases, for example v1"
     required: false
-    default: "true"
+    default: "false"
 
 outputs:
   version:
@@ -40,10 +40,10 @@ outputs:
     description: "Whether the resolved bump level should create a full release"
   currentVersion:
     description: "Latest semver tag discovered on the current branch, or 0.0.1 with the configured prefix if none exists"
-  majorTag:
-    description: "Moving major-version tag for the resolved version, for example v1, or empty when disabled or below 1.0.0"
-  createMajorTag:
-    description: "Whether the moving major-version tag should be created or updated"
+  majorAlias:
+    description: "Moving major-version alias for the resolved version, for example v1, or empty when disabled or below 1.0.0"
+  createMajorAlias:
+    description: "Whether the moving major-version alias should be created or updated"
   bump:
     description: "Resolved bump level: major, minor, patch, or empty when no matching commit exists"
 
@@ -63,5 +63,5 @@ runs:
     - ${{ inputs.release_bumps }}
     - --tag-prefix
     - ${{ inputs.tag_prefix }}
-    - --major-tag
-    - ${{ inputs.major_tag }}
+    - --major-alias
+    - ${{ inputs.major_alias }}

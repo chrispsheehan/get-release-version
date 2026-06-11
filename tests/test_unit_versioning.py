@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from get_next_version import (
     SemVer,
     classify_bump,
-    format_major_tag,
+    format_major_alias,
     format_tag,
     latest_semver_tag,
     parse_bool,
@@ -126,9 +126,9 @@ class TagPrefixTests(unittest.TestCase):
         self.assertEqual(format_tag(SemVer(1, 2, 3), "v"), "v1.2.3")
         self.assertEqual(format_tag(SemVer(1, 2, 3), ""), "1.2.3")
 
-    def test_format_major_tag_applies_configured_prefix(self) -> None:
-        self.assertEqual(format_major_tag(SemVer(1, 2, 3), "v"), "v1")
-        self.assertEqual(format_major_tag(SemVer(1, 2, 3), ""), "1")
+    def test_format_major_alias_applies_configured_prefix(self) -> None:
+        self.assertEqual(format_major_alias(SemVer(1, 2, 3), "v"), "v1")
+        self.assertEqual(format_major_alias(SemVer(1, 2, 3), ""), "1")
 
 
 class LatestSemverTagTests(unittest.TestCase):

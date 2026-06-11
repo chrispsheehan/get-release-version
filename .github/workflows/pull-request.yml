@@ -134,46 +134,46 @@ jobs:
           git tag -d prod
           git tag -f v0.0.1
 
-      - name: Run local action for v1 major tag output
-        id: get-next-version-major-tag
+      - name: Run local action for v1 major alias output
+        id: get-next-version-major-alias
         uses: ./
         with:
           subjects: "feat!: publish v1 action release"
           tag_prefix: v
-          major_tag: true
+          major_alias: true
 
-      - name: Assert v1 major tag outputs
+      - name: Assert v1 major alias outputs
         run: |
-          test "${{ steps.get-next-version-major-tag.outputs.bump }}" = "major"
-          test "${{ steps.get-next-version-major-tag.outputs.currentVersion }}" = "v0.0.1"
-          test "${{ steps.get-next-version-major-tag.outputs.version }}" = "v1.0.0"
-          test "${{ steps.get-next-version-major-tag.outputs.majorTag }}" = "v1"
-          test "${{ steps.get-next-version-major-tag.outputs.createNewTag }}" = "true"
-          test "${{ steps.get-next-version-major-tag.outputs.createNewRelease }}" = "true"
-          test "${{ steps.get-next-version-major-tag.outputs.createMajorTag }}" = "true"
+          test "${{ steps.get-next-version-major-alias.outputs.bump }}" = "major"
+          test "${{ steps.get-next-version-major-alias.outputs.currentVersion }}" = "v0.0.1"
+          test "${{ steps.get-next-version-major-alias.outputs.version }}" = "v1.0.0"
+          test "${{ steps.get-next-version-major-alias.outputs.majorAlias }}" = "v1"
+          test "${{ steps.get-next-version-major-alias.outputs.createNewTag }}" = "true"
+          test "${{ steps.get-next-version-major-alias.outputs.createNewRelease }}" = "true"
+          test "${{ steps.get-next-version-major-alias.outputs.createMajorAlias }}" = "true"
 
       - name: Create temp v1 baseline tag
         run: |
           git tag -d v0.0.1
           git tag -f v1.0.0
 
-      - name: Run local action for v2 major tag output
-        id: get-next-version-v2-major-tag
+      - name: Run local action for v2 major alias output
+        id: get-next-version-v2-major-alias
         uses: ./
         with:
           subjects: "feat!: publish v2 action release"
           tag_prefix: v
-          major_tag: true
+          major_alias: true
 
-      - name: Assert v2 major tag outputs
+      - name: Assert v2 major alias outputs
         run: |
-          test "${{ steps.get-next-version-v2-major-tag.outputs.bump }}" = "major"
-          test "${{ steps.get-next-version-v2-major-tag.outputs.currentVersion }}" = "v1.0.0"
-          test "${{ steps.get-next-version-v2-major-tag.outputs.version }}" = "v2.0.0"
-          test "${{ steps.get-next-version-v2-major-tag.outputs.majorTag }}" = "v2"
-          test "${{ steps.get-next-version-v2-major-tag.outputs.createNewTag }}" = "true"
-          test "${{ steps.get-next-version-v2-major-tag.outputs.createNewRelease }}" = "true"
-          test "${{ steps.get-next-version-v2-major-tag.outputs.createMajorTag }}" = "true"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.bump }}" = "major"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.currentVersion }}" = "v1.0.0"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.version }}" = "v2.0.0"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.majorAlias }}" = "v2"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.createNewTag }}" = "true"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.createNewRelease }}" = "true"
+          test "${{ steps.get-next-version-v2-major-alias.outputs.createMajorAlias }}" = "true"
 
       - name: Run local action for no matching bump
         id: get-next-version-none
@@ -195,7 +195,7 @@ jobs:
       - check-pr-title
     runs-on: ubuntu-latest
     env:
-      UPDATE_MAJOR_TAG: "true"
+      ENABLE_MAJOR_ALIAS: "true"
     steps:
       - uses: actions/checkout@v6
         with:
@@ -207,7 +207,7 @@ jobs:
         with:
           subjects: ${{ github.event.pull_request.title || inputs.pr_title }}
           tag_prefix: v
-          major_tag: ${{ env.UPDATE_MAJOR_TAG }}
+          major_alias: ${{ env.ENABLE_MAJOR_ALIAS }}
 
       - name: Show action outputs
         run: |
@@ -215,6 +215,6 @@ jobs:
           echo "version=${{ steps.get_next_version.outputs.version }}"
           echo "createNewTag=${{ steps.get_next_version.outputs.createNewTag }}"
           echo "createNewRelease=${{ steps.get_next_version.outputs.createNewRelease }}"
-          echo "majorTag=${{ steps.get_next_version.outputs.majorTag }}"
-          echo "createMajorTag=${{ steps.get_next_version.outputs.createMajorTag }}"
+          echo "majorAlias=${{ steps.get_next_version.outputs.majorAlias }}"
+          echo "createMajorAlias=${{ steps.get_next_version.outputs.createMajorAlias }}"
           echo "bump=${{ steps.get_next_version.outputs.bump }}"

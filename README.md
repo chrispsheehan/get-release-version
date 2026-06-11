@@ -28,7 +28,7 @@ Default versioning contract:
 - patch: commits with type `fix`
 - `release_bumps`: `major,minor,patch`
 - `tag_prefix`: empty string
-- `major_tag`: `true`
+- `major_alias`: `false`
 - when no matching semver tag exists, `currentVersion` falls back to `0.0.1` with the configured prefix
 
 ---
@@ -37,13 +37,13 @@ Default versioning contract:
 
 | Name             | Description                                                                     | Required | Default               |
 |------------------|---------------------------------------------------------------------------------|----------|-----------------------|
-| `subjects`       | Optional newline-delimited commit subjects to classify instead of git history   | ❌        | `""`                  |
-| `major_prefixes` | Comma-separated commit subject prefixes that trigger a major bump               | ❌        | `""`                  |
+| `subjects`       | Optional PR title or newline-delimited commit subjects to classify instead of git history | ❌        | `""`                  |
+| `major_prefixes` | Comma-separated custom commit types that trigger a major bump; breaking markers are handled automatically | ❌        | `""`                  |
 | `minor_prefixes` | Comma-separated commit subject prefixes that trigger a minor bump               | ❌        | `feat`                |
 | `patch_prefixes` | Comma-separated commit subject prefixes that trigger a patch bump               | ❌        | `fix`                 |
 | `release_bumps`  | Comma-separated bump levels that create a full release                          | ❌        | `major,minor,patch`   |
 | `tag_prefix`     | Optional prefix for semver tags, for example `v` for tags like `v1.2.3`         | ❌        | `""`                  |
-| `major_tag`      | Whether to output a moving major-version tag for non-zero major releases        | ❌        | `true`                |
+| `major_alias`    | Whether to output a moving major-version alias for non-zero major releases      | ❌        | `false`               |
 
 Optional override behavior:
 
@@ -51,7 +51,7 @@ Optional override behavior:
 - `major_prefixes`, `minor_prefixes`, and `patch_prefixes` classify commit types differently from the defaults.
 - `release_bumps` limits which bump levels create full release work while still allowing other matching subjects to create tags.
 - `tag_prefix` discovers matching prefixed tags and emits versions with the same prefix.
-- `major_tag` controls whether `majorTag` and `createMajorTag` are populated for releases like `v1.0.0`.
+- `major_alias` controls whether `majorAlias` and `createMajorAlias` are populated for releases like `v1.0.0`.
 
 ---
 
@@ -63,13 +63,13 @@ Optional override behavior:
 | `version`          | Next semver tag when a matching commit exists, otherwise the current tag     |
 | `createNewTag`     | Whether a new semver tag should be created                                  |
 | `createNewRelease` | Whether the resolved bump level should create full release work             |
-| `majorTag`         | Moving major-version tag for the resolved version, for example `v1`         |
-| `createMajorTag`   | Whether the moving major-version tag should be created or updated           |
+| `majorAlias`       | Moving major-version alias for the resolved version, for example `v1`       |
+| `createMajorAlias` | Whether the moving major-version alias should be created or updated         |
 | `bump`             | Resolved bump level, or empty when no matching commit exists                |
 
 `createNewTag` decides whether the workflow should create a semver tag.
 `createNewRelease` decides whether the workflow should run full release work for the resolved bump level.
-`createMajorTag` decides whether the workflow should create or update the `majorTag` alias.
+`createMajorAlias` decides whether the workflow should create or update the `majorAlias` tag.
 
 ---
 
@@ -113,20 +113,21 @@ jobs:
         uses: chrispsheehan/get-release-version@v1
         with:
           subjects: ${{ github.event.pull_request.title }}
+          major_alias: true
 
       - name: Show preview
         run: |
           echo "version=${{ steps.get-release-version.outputs.version }}"
-          echo "majorTag=${{ steps.get-release-version.outputs.majorTag }}"
+          echo "majorAlias=${{ steps.get-release-version.outputs.majorAlias }}"
           echo "createNewTag=${{ steps.get-release-version.outputs.createNewTag }}"
           echo "createNewRelease=${{ steps.get-release-version.outputs.createNewRelease }}"
-          echo "createMajorTag=${{ steps.get-release-version.outputs.createMajorTag }}"
+          echo "createMajorAlias=${{ steps.get-release-version.outputs.createMajorAlias }}"
 ```
 
 Example JSON output:
 
 ```json
-{"currentVersion":"v0.0.1","version":"v1.0.0","createNewTag":"true","createNewRelease":"true","majorTag":"v1","createMajorTag":"true","bump":"major"}
+{"currentVersion":"v0.0.1","version":"v1.0.0","createNewTag":"true","createNewRelease":"true","majorAlias":"v1","createMajorAlias":"true","bump":"major"}
 ```
 
 ---
@@ -169,10 +170,30 @@ just unit-test
 
 ## Publishing
 
-The `push-on-main` workflow runs tests, calculates the next release tag with `tag_prefix: v`, and publishes that tag. By default, `UPDATE_MAJOR_TAG` is `true`, so tags like `v1.0.0` also force-update the matching moving major tag, `v1`, to the same commit. Major aliases are skipped for `v0.x.x` tags.
+For GitHub Actions, publish immutable semver tags and keep a moving major-version alias for consumers:
+
+- `v1.0.0`, `v1.0.1`, and `v1.1.0` are immutable release tags and should get GitHub Releases.
+- `v1` is a moving major alias used by workflows like `uses: chrispsheehan/get-release-version@v1`.
+- `v1` should move when a new compatible `v1.x.x` release is created, such as a `fix:` or `feat:` change after `v1.0.0`.
+- `v1` should not move when `v2.0.0` is created; `v2` becomes the moving alias for the new major line.
+
+The `release` workflow calculates tags with `tag_prefix: v` and `major_alias: true`. That means a breaking change from `v0.0.1` produces `version=v1.0.0` and `majorAlias=v1`. The workflow publishes the GitHub Release for `version`, then creates or updates the Git tag named by `majorAlias`.
 
 Keeping `v1` current lets users pin the action as:
 
 ```yaml
 uses: chrispsheehan/get-release-version@v1
 ```
+
+For application and library repositories, you usually do not need a moving `v1` alias. Prefer publishing only immutable semver tags and leave the major alias disabled:
+
+```yaml
+- name: Get next version
+  id: get-release-version
+  uses: chrispsheehan/get-release-version@v1
+  with:
+    tag_prefix: v
+    major_alias: false
+```
+
+Then create GitHub Releases only for `version`, for example `v1.0.0`, `v1.0.1`, and `v1.1.0`.

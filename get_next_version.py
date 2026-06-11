@@ -97,7 +97,7 @@ def format_tag(version: SemVer, tag_prefix: str) -> str:
     return f"{tag_prefix}{version}"
 
 
-def format_major_tag(version: SemVer, tag_prefix: str) -> str:
+def format_major_alias(version: SemVer, tag_prefix: str) -> str:
     return f"{tag_prefix}{version.major}"
 
 
@@ -165,12 +165,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--subjects",
         default=os.environ.get("SUBJECTS", ""),
-        help="Optional newline-delimited commit subjects to classify instead of reading git history.",
+        help="Optional PR title or newline-delimited commit subjects to classify instead of reading git history.",
     )
     parser.add_argument(
         "--major-prefixes",
         default=os.environ.get("MAJOR_PREFIXES", ""),
-        help="Comma-separated commit prefixes that trigger a major bump.",
+        help="Comma-separated custom commit types that trigger a major bump.",
     )
     parser.add_argument(
         "--minor-prefixes",
@@ -193,9 +193,9 @@ def parse_args() -> argparse.Namespace:
         help="Optional prefix for semver tags, for example 'v' for tags like v1.2.3.",
     )
     parser.add_argument(
-        "--major-tag",
-        default=os.environ.get("MAJOR_TAG", "true"),
-        help="Whether to output a moving major-version tag for non-zero major releases.",
+        "--major-alias",
+        default=os.environ.get("MAJOR_ALIAS", "false"),
+        help="Whether to output a moving major-version alias for non-zero major releases.",
     )
     parser.add_argument(
         "--format",
@@ -227,15 +227,15 @@ def main() -> int:
 
     next_semver = current_version.bump(bump) if bump else current_version
     next_version = format_tag(next_semver, args.tag_prefix) if bump else current_tag
-    create_major_tag = bool(bump) and parse_bool(args.major_tag) and next_semver.major > 0
+    create_major_alias = bool(bump) and parse_bool(args.major_alias) and next_semver.major > 0
     release_bumps = set(parse_release_bumps(args.release_bumps))
     payload = {
         "currentVersion": current_tag,
         "version": next_version,
         "createNewTag": "true" if bump else "false",
         "createNewRelease": "true" if bump in release_bumps else "false",
-        "majorTag": format_major_tag(next_semver, args.tag_prefix) if create_major_tag else "",
-        "createMajorTag": "true" if create_major_tag else "false",
+        "majorAlias": format_major_alias(next_semver, args.tag_prefix) if create_major_alias else "",
+        "createMajorAlias": "true" if create_major_alias else "false",
         "bump": bump or "",
     }
 
