@@ -19,6 +19,7 @@ jobs:
 
       - name: Run functional tests
         run: python tests/test_functional_versioning.py
+        
   end-to-end:
     runs-on: ubuntu-latest
 
@@ -123,10 +124,13 @@ jobs:
       - name: Get next version
         id: get-next-version
         uses: ./
+        with:
+          tag_prefix: v
 
   create-tag:
     name: Tag
     needs: 
+      - get-next-version
       - tests
       - end-to-end
     if: ${{ needs.get-next-version.outputs.create-new-tag == 'true' }}
@@ -135,6 +139,7 @@ jobs:
       contents: write
     env:
       TAG: ${{ needs.get-next-version.outputs.tag }}
+      ACTION_MAJOR_TAG: v1
     steps:
       - uses: actions/checkout@v6
       - name: Create new tag
@@ -144,6 +149,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$TAG"
           git push origin "refs/tags/$TAG"
+
+          echo "Updating $ACTION_MAJOR_TAG to $GITHUB_SHA"
+          git tag -f "$ACTION_MAJOR_TAG" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$ACTION_MAJOR_TAG"
 
   get-commits:
     name: Commits

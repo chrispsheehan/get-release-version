@@ -4,10 +4,9 @@ This GitHub Action computes the next semver tag from commit subject prefixes sin
 
 ---
 
-## 🚀 Features
+## Features
 
 - Runs through the Docker image defined in this directory's `Dockerfile`
-- Runs the Python entrypoint directly in GitHub Actions; the `justfile` is only a local test harness
 - Resolves the checkout from `GITHUB_WORKSPACE` inside GitHub Actions
 - Uses `GITHUB_WORKSPACE` from the local just harness for local runs
 - Supports reading commit subjects from git history or from explicit `subjects`
@@ -15,6 +14,12 @@ This GitHub Action computes the next semver tag from commit subject prefixes sin
 - Supports custom major, minor, patch, release, and tag-prefix rules
 - Accepts short manual tags like `1`, `1.1`, `v1`, and `v1.1` and normalizes them when calculating the next full semver tag
 - Ignores non-version tags like `prod`, `dev`, or `latest`
+
+Use this action from another repository with the moving major-version ref:
+
+```yaml
+- uses: chrispsheehan/get-release-version@v1
+```
 
 Default versioning contract:
 
@@ -27,7 +32,7 @@ Default versioning contract:
 
 ---
 
-## 📥 Inputs
+## Inputs
 
 | Name             | Description                                                                     | Required | Default               |
 |------------------|---------------------------------------------------------------------------------|----------|-----------------------|
@@ -47,7 +52,7 @@ Optional override behavior:
 
 ---
 
-## 📤 Outputs
+## Outputs
 
 | Name               | Description                                                                 |
 |--------------------|-----------------------------------------------------------------------------|
@@ -62,7 +67,7 @@ Optional override behavior:
 
 ---
 
-## 🛠 Example Usage
+## Example Usage
 
 ### Default release calculation
 
@@ -83,6 +88,8 @@ jobs:
         id: get-release-version
         uses: chrispsheehan/get-release-version@v1
 ```
+
+Use `fetch-depth: 0` when the action should calculate from repository tags and commit history.
 
 ### PR title preview
 
@@ -116,22 +123,22 @@ Example JSON output:
 
 ---
 
-## 💻 Local Usage
+## Local Usage
 
 Run the action entrypoint directly:
 
 ```sh
-just --justfile .github/actions/get-release-version/justfile local-test
+just local-test
 ```
 
 ---
 
-## 🧪 Tests
+## Tests
 
 Run functional tests:
 
 ```sh
-just --justfile .github/actions/get-release-version/justfile functional-test
+just functional-test
 ```
 
 The functional tests cover:
@@ -147,5 +154,15 @@ The functional tests cover:
 Run unit tests locally:
 
 ```sh
-just --justfile .github/actions/get-release-version/justfile unit-test
+just unit-test
+```
+
+---
+
+## Publishing
+
+The `push-on-main` workflow runs tests, calculates the next release tag with `tag_prefix: v`, publishes that tag, and force-updates the `v1` tag to the same commit. Keeping `v1` current lets users pin the action as:
+
+```yaml
+uses: chrispsheehan/get-release-version@v1
 ```
