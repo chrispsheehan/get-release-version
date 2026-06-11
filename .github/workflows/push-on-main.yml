@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  UPDATE_MAJOR_TAG: "true"
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -139,7 +142,6 @@ jobs:
       contents: write
     env:
       TAG: ${{ needs.get-next-version.outputs.tag }}
-      ACTION_MAJOR_TAG: v1
     steps:
       - uses: actions/checkout@v6
       - name: Create new tag
@@ -150,9 +152,18 @@ jobs:
           git tag "$TAG"
           git push origin "refs/tags/$TAG"
 
-          echo "Updating $ACTION_MAJOR_TAG to $GITHUB_SHA"
-          git tag -f "$ACTION_MAJOR_TAG" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$ACTION_MAJOR_TAG"
+          if [ "$UPDATE_MAJOR_TAG" = "true" ]; then
+            VERSION="${TAG#v}"
+            MAJOR="${VERSION%%.*}"
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$MAJOR" != "0" ]; then
+              ACTION_MAJOR_TAG="v${MAJOR}"
+              echo "Updating $ACTION_MAJOR_TAG to $GITHUB_SHA"
+              git tag -f "$ACTION_MAJOR_TAG" "$GITHUB_SHA"
+              git push --force origin "refs/tags/$ACTION_MAJOR_TAG"
+            else
+              echo "Skipping major tag update for $TAG"
+            fi
+          fi
 
   get-commits:
     name: Commits
