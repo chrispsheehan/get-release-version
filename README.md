@@ -12,7 +12,7 @@ This GitHub Action computes the next semver tag from commit subject prefixes sin
 - Supports reading commit subjects from git history or from explicit `subjects`
 - Follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) by default
 - Supports custom major, minor, patch, release, and tag-prefix rules
-- Accepts short manual tags like `1`, `1.1`, `v1`, and `v1.1` and normalizes them when calculating the next full semver tag
+- Accepts short manual tags like `1` and `1.1`, or `v1` and `v1.1` when `tag_prefix: v` is set, and normalizes them when calculating the next full semver tag
 - Ignores non-version tags like `prod`, `dev`, or `latest`
 
 Use this action from another repository with the moving major-version ref:
@@ -69,7 +69,7 @@ Optional override behavior:
 
 `createNewTag` decides whether the workflow should create a semver tag.
 `createNewRelease` decides whether the workflow should run full release work for the resolved bump level.
-`createMajorAlias` decides whether the workflow should create or update the `majorAlias` tag.
+`createMajorAlias` decides whether the workflow should create or update the tag named by `majorAlias`.
 
 ---
 
@@ -113,6 +113,7 @@ jobs:
         uses: chrispsheehan/get-release-version@v1
         with:
           subjects: ${{ github.event.pull_request.title }}
+          tag_prefix: v
           major_alias: true
 
       - name: Show preview
@@ -173,7 +174,7 @@ just unit-test
 
 ## Publishing
 
-For GitHub Actions, publish immutable semver tags and keep a moving major-version alias for consumers:
+For repositories that publish a GitHub Action, publish immutable semver tags and keep a moving major-version alias for consumers:
 
 - `v1.0.0`, `v1.0.1`, and `v1.1.0` are immutable release tags and should get GitHub Releases.
 - `v1` is a moving major alias used by workflows like `uses: chrispsheehan/get-release-version@v1`.
