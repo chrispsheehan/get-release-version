@@ -21,7 +21,7 @@ on:
 
 jobs:
   check-pr-title:
-    name: PR Title
+    name: Check PR Title
     runs-on: ubuntu-latest
     env:
       PR_TITLE: ${{ github.event.pull_request.title || inputs.pr_title }}
