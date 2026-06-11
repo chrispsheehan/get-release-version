@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,7 @@ from get_next_version import classify_bump, parse_prefixes, parse_release_bumps
 TEST_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TEST_DIR.parent
 OUTPUT_SCENARIOS_PATH = TEST_DIR / "functional_output_scenarios.json"
+PR_TITLE_RE = re.compile(r"^(feat|fix|chore|docs)(\([A-Za-z0-9._/-]+\))?!?: .+")
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,6 +70,10 @@ def bump_for(subject: str, *, major: list[str], minor: list[str], patch: list[st
 
 def bump_for_subjects(subjects: list[str], *, major: list[str], minor: list[str], patch: list[str]) -> str:
     return classify_bump(subjects, major=major, minor=minor, patch=patch) or ""
+
+
+def is_allowed_pr_title(title: str) -> bool:
+    return bool(PR_TITLE_RE.fullmatch(title))
 
 
 def run_command(args: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> str:
@@ -224,6 +230,25 @@ def run_output_checks() -> list[dict[str, object]]:
     return results
 
 
+def run_pr_title_checks() -> list[dict[str, object]]:
+    scenarios = [
+        ("feat_title", "feat: add output", True),
+        ("breaking_scoped_feat_title", "feat(v1)!: docs update", True),
+        ("scoped_fix_title", "fix(parser): preserve whitespace", True),
+        ("docs_title", "docs: update readme", True),
+        ("unsupported_type", "refactor: simplify parser", False),
+        ("missing_space_after_colon", "feat(v1)!:docs update", False),
+    ]
+    return [
+        {
+            "name": name,
+            "passes": is_allowed_pr_title(title) == expected,
+            "failures": [] if is_allowed_pr_title(title) == expected else [f"{title!r} expected {expected}"],
+        }
+        for name, title, expected in scenarios
+    ]
+
+
 def main() -> int:
     args = parse_args()
     major = parse_prefixes(args.major_prefixes)
@@ -374,7 +399,20 @@ def main() -> int:
     print()
     print(f"Output summary: {sum(1 for check in output_checks if check['passes'])}/{len(output_checks)} checks passed")
 
-    return 0 if payload["all_passed"] and all_output_checks_passed else 1
+    pr_title_checks = run_pr_title_checks()
+    print()
+    print("PR title checks:")
+    for check in pr_title_checks:
+        status = "PASS" if check["passes"] else "FAIL"
+        print(f"  [{status}] {check['name']}")
+        for failure in check["failures"]:
+            print(f"        {failure}")
+
+    all_pr_title_checks_passed = all(check["passes"] for check in pr_title_checks)
+    print()
+    print(f"PR title summary: {sum(1 for check in pr_title_checks if check['passes'])}/{len(pr_title_checks)} checks passed")
+
+    return 0 if payload["all_passed"] and all_output_checks_passed and all_pr_title_checks_passed else 1
 
 
 if __name__ == "__main__":

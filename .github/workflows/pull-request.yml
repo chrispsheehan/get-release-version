@@ -25,18 +25,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PR_TITLE: ${{ github.event.pull_request.title || inputs.pr_title }}
-      ALLOWED_PREFIXES: "feat: feat!: fix: fix!: chore: docs:"
+      ALLOWED_TITLE_PATTERN: '^(feat|fix|chore|docs)(\([A-Za-z0-9._/-]+\))?!?: .+'
     steps:
-      - name: Fail if PR title does not start with an allowed prefix
+      - name: Fail if PR title is not a supported Conventional Commit
         run: |
           echo "PR title: $PR_TITLE"
-          for prefix in $ALLOWED_PREFIXES; do
-            if [[ "$PR_TITLE" == "$prefix"* ]]; then
-              echo "✅ PR title is valid."
-              exit 0
-            fi
-          done
-          echo "::error::❌ PR title must start with one of: $ALLOWED_PREFIXES"
+          if [[ "$PR_TITLE" =~ $ALLOWED_TITLE_PATTERN ]]; then
+            echo "PR title is valid."
+            exit 0
+          fi
+          echo "::error::PR title must be a supported Conventional Commit, for example feat: add output or feat(v1)!: change API"
           exit 1
 
   unit-test:
