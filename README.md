@@ -159,6 +159,9 @@ The functional tests cover:
 - scoped commit types
 - `!` and `BREAKING CHANGE:` breaking-change markers
 - mixed commit lists where the highest bump level should win
+- full output calculation from real Git repositories
+- short tag normalization and non-semver tag filtering
+- `tag_prefix`, `major_alias`, `majorAlias`, and `createMajorAlias` behavior
 
 Run unit tests locally:
 
