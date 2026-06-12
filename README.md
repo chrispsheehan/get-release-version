@@ -6,7 +6,7 @@ This GitHub Action computes the next semver tag from commit subject prefixes sin
 
 ## Features
 
-- Runs through the Docker image defined in this directory's `Dockerfile`
+- Runs as a composite action with the runner's `python3` and `git`
 - Resolves the checkout from `GITHUB_WORKSPACE` inside GitHub Actions
 - Uses `GITHUB_WORKSPACE` from the local just harness for local runs
 - Supports reading commit subjects from git history or from explicit `subjects`

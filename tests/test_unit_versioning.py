@@ -24,6 +24,26 @@ from get_next_version import (
 )
 
 
+class ActionMetadataTests(unittest.TestCase):
+    def test_action_runs_as_composite_and_maps_outputs(self) -> None:
+        metadata = (Path(__file__).resolve().parents[1] / "action.yml").read_text(encoding="utf-8")
+
+        self.assertIn('using: "composite"', metadata)
+        self.assertNotIn('using: "docker"', metadata)
+        self.assertIn('run: python3 "${{ github.action_path }}/get_next_version.py"', metadata)
+
+        for output in (
+            "version",
+            "createNewTag",
+            "createNewRelease",
+            "currentVersion",
+            "majorAlias",
+            "createMajorAlias",
+            "bump",
+        ):
+            self.assertIn(f"value: ${{{{ steps.get-release-version.outputs.{output} }}}}", metadata)
+
+
 class WorkspaceResolutionTests(unittest.TestCase):
     def test_resolve_workspace_uses_github_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
