@@ -34,34 +34,37 @@ inputs:
 outputs:
   version:
     description: "Next semver tag when a matching commit exists, otherwise the current tag"
+    value: ${{ steps.get-release-version.outputs.version }}
   createNewTag:
     description: "Whether a new semver tag should be created"
+    value: ${{ steps.get-release-version.outputs.createNewTag }}
   createNewRelease:
     description: "Whether the resolved bump level should create a full release"
+    value: ${{ steps.get-release-version.outputs.createNewRelease }}
   currentVersion:
     description: "Latest semver tag discovered on the current branch, or 0.0.1 with the configured prefix if none exists"
+    value: ${{ steps.get-release-version.outputs.currentVersion }}
   majorAlias:
     description: "Moving major-version alias for the resolved version, for example v1, or empty when disabled or below 1.0.0"
+    value: ${{ steps.get-release-version.outputs.majorAlias }}
   createMajorAlias:
     description: "Whether the moving major-version alias should be created or updated"
+    value: ${{ steps.get-release-version.outputs.createMajorAlias }}
   bump:
     description: "Resolved bump level: major, minor, patch, or empty when no matching commit exists"
+    value: ${{ steps.get-release-version.outputs.bump }}
 
 runs:
-  using: "docker"
-  image: "Dockerfile"
-  args:
-    - --subjects
-    - ${{ inputs.subjects }}
-    - --major-prefixes
-    - ${{ inputs.major_prefixes }}
-    - --minor-prefixes
-    - ${{ inputs.minor_prefixes }}
-    - --patch-prefixes
-    - ${{ inputs.patch_prefixes }}
-    - --release-bumps
-    - ${{ inputs.release_bumps }}
-    - --tag-prefix
-    - ${{ inputs.tag_prefix }}
-    - --major-alias
-    - ${{ inputs.major_alias }}
+  using: "composite"
+  steps:
+    - id: get-release-version
+      shell: bash
+      env:
+        SUBJECTS: ${{ inputs.subjects }}
+        MAJOR_PREFIXES: ${{ inputs.major_prefixes }}
+        MINOR_PREFIXES: ${{ inputs.minor_prefixes }}
+        PATCH_PREFIXES: ${{ inputs.patch_prefixes }}
+        RELEASE_BUMPS: ${{ inputs.release_bumps }}
+        TAG_PREFIX: ${{ inputs.tag_prefix }}
+        MAJOR_ALIAS: ${{ inputs.major_alias }}
+      run: python3 "${{ github.action_path }}/get_next_version.py"
