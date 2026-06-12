@@ -10,18 +10,57 @@ This GitHub Action computes the next semver tag from commit subject prefixes sin
 - Resolves the checkout from `GITHUB_WORKSPACE` inside GitHub Actions and reads commit subjects from git history or from explicit `subjects`
 - Follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) by default
 
-Use this action from another repository with the moving major-version ref:
+---
+
+## Usage
 
 ```yaml
-- uses: chrispsheehan/get-release-version@v1
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Required when reading tags and commit history.
+          fetch-depth: 0
+
+      - id: get-release-version
+        uses: chrispsheehan/get-release-version@v1
+        with:
+          # PR title or newline-delimited commit subjects.
+          # Default: git history
+          subjects: ''
+
+          # Custom commit types for major bumps. Breaking markers still apply.
+          # Default: ''
+          major_prefixes: ''
+
+          # Default: feat
+          minor_prefixes: feat
+
+          # Default: fix
+          patch_prefixes: fix
+
+          # Bump levels that should publish a release.
+          # Default: major,minor,patch
+          release_bumps: major,minor,patch
+
+          # Prefix for semver tags, for example v1.2.3.
+          # Default: ''
+          tag_prefix: ''
+
+          # Populate majorAlias/createMajorAlias, for example v1.
+          # Default: false
+          major_alias: false
+
+      - name: Show version
+        run: |
+          echo "version=${{ steps.get-release-version.outputs.version }}"
+          echo "majorAlias=${{ steps.get-release-version.outputs.majorAlias }}"
+          echo "createNewTag=${{ steps.get-release-version.outputs.createNewTag }}"
+          echo "createNewRelease=${{ steps.get-release-version.outputs.createNewRelease }}"
+          echo "createMajorAlias=${{ steps.get-release-version.outputs.createMajorAlias }}"
 ```
-
-By default:
-
-- `feat` creates a minor bump
-- `fix` creates a patch bump
-- `!` or `BREAKING CHANGE:` creates a major bump
-- if no semver tag exists, `currentVersion` starts at `0.0.1`
 
 ---
 
@@ -52,60 +91,6 @@ All inputs are optional.
 | `majorAlias`       | Moving major-version alias for the resolved version, for example `v1`       |
 | `createMajorAlias` | Whether the workflow should create or update `majorAlias`                   |
 | `bump`             | Resolved bump level, or empty when no matching commit exists                |
-
----
-
-## Example Usage
-
-### Default release calculation
-
-```yaml
-jobs:
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get-release-version.outputs.version }}
-      createNewTag: ${{ steps.get-release-version.outputs.createNewTag }}
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Get next version
-        id: get-release-version
-        uses: chrispsheehan/get-release-version@v1
-```
-
-Use `fetch-depth: 0` when the action should calculate from repository tags and commit history.
-
-### PR title preview
-
-```yaml
-jobs:
-  preview:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Preview version from PR title
-        id: get-release-version
-        uses: chrispsheehan/get-release-version@v1
-        with:
-          subjects: ${{ github.event.pull_request.title }}
-          tag_prefix: v
-          major_alias: true
-
-      - name: Show preview
-        run: |
-          echo "version=${{ steps.get-release-version.outputs.version }}"
-          echo "majorAlias=${{ steps.get-release-version.outputs.majorAlias }}"
-          echo "createNewTag=${{ steps.get-release-version.outputs.createNewTag }}"
-          echo "createNewRelease=${{ steps.get-release-version.outputs.createNewRelease }}"
-          echo "createMajorAlias=${{ steps.get-release-version.outputs.createMajorAlias }}"
-```
 
 ---
 
