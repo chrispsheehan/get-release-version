@@ -16,15 +16,8 @@ Use this action from another repository with the moving major-version ref:
 - uses: chrispsheehan/get-release-version@v1
 ```
 
-Default versioning contract:
-
 - major: commits with `!`, `BREAKING CHANGE:`, or `BREAKING-CHANGE:`
-- minor: commits with type `feat`
-- patch: commits with type `fix`
-- `release_bumps`: `major,minor,patch`
-- `tag_prefix`: empty string
-- `major_alias`: `false`
-- when no matching semver tag exists, `currentVersion` falls back to `0.0.1` with the configured prefix
+- when no matching semver tag exists, i.e. the first execution `currentVersion` falls back to `0.0.1` with the configured prefix
 
 ---
 
@@ -110,12 +103,6 @@ jobs:
           echo "createMajorAlias=${{ steps.get-release-version.outputs.createMajorAlias }}"
 ```
 
-Example JSON output:
-
-```json
-{"currentVersion":"v0.0.1","version":"v1.0.0","createNewTag":"true","createNewRelease":"true","majorAlias":"v1","createMajorAlias":"true","bump":"major"}
-```
-
 ---
 
 ## Local Usage
@@ -126,28 +113,11 @@ Run the action entrypoint directly:
 just local-test
 ```
 
----
-
-## Tests
-
-Run functional tests:
+Run functional tests locally:
 
 ```sh
 just functional-test
 ```
-
-The functional tests cover:
-
-- direct pushes with patch, minor, and breaking-change indicators
-- squash/rebase PR subjects
-- default merge-commit subjects that should not match
-- case-insensitive prefix matching
-- scoped commit types
-- `!` and `BREAKING CHANGE:` breaking-change markers
-- mixed commit lists where the highest bump level should win
-- full output calculation from real Git repositories
-- short tag normalization and non-semver tag filtering
-- `tag_prefix`, `major_alias`, `majorAlias`, and `createMajorAlias` behavior
 
 Run unit tests locally:
 
@@ -167,12 +137,6 @@ For repositories that publish a GitHub Action, publish immutable semver tags and
 - `v1` should not move when `v2.0.0` is created; `v2` becomes the moving alias for the new major line.
 
 The `release` workflow calculates tags with `tag_prefix: v` and `major_alias: true`. That means a breaking change from `v0.0.1` produces `version=v1.0.0` and `majorAlias=v1`. The workflow publishes the GitHub Release for `version`, then creates or updates the Git tag named by `majorAlias`.
-
-Keeping `v1` current lets users pin the action as:
-
-```yaml
-uses: chrispsheehan/get-release-version@v1
-```
 
 For application and library repositories, you usually do not need a moving `v1` alias. Prefer publishing only immutable semver tags and leave the major alias disabled:
 
