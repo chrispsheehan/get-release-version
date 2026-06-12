@@ -1,14 +1,10 @@
 # Get Release Version
 
-This GitHub Action computes the next semver tag from commit subject prefixes since the latest matching semver tag.
+This GitHub Action computes the next semver tag from commit subject prefixes since the latest matching semver tag. 
 
----
+By default it follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/): `feat` triggers a minor bump, `fix` triggers a patch bump, and breaking markers trigger a major bump.
 
-## Features
-
-- Runs as a composite action with the runner's `python3` and `git`
-- Resolves the checkout from `GITHUB_WORKSPACE` inside GitHub Actions and reads commit subjects from git history or from explicit `subjects`
-- Follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) by default
+A major bump is triggered by a Conventional Commit breaking marker, such as `feat!:`, `fix(scope)!:`, `BREAKING CHANGE:`, or `BREAKING-CHANGE:`, or by any commit type listed in `major_prefixes`.
 
 ---
 
@@ -32,6 +28,7 @@ jobs:
           subjects: ''
 
           # Custom commit types for major bumps. Breaking markers still apply.
+          # Examples: feat!:, fix(scope)!:, BREAKING CHANGE:
           # Default: ''
           major_prefixes: ''
 
