@@ -7,13 +7,8 @@ This GitHub Action computes the next semver tag from commit subject prefixes sin
 ## Features
 
 - Runs as a composite action with the runner's `python3` and `git`
-- Resolves the checkout from `GITHUB_WORKSPACE` inside GitHub Actions
-- Uses `GITHUB_WORKSPACE` from the local just harness for local runs
-- Supports reading commit subjects from git history or from explicit `subjects`
+- Resolves the checkout from `GITHUB_WORKSPACE` inside GitHub Actions and reads commit subjects from git history or from explicit `subjects`
 - Follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) by default
-- Supports custom major, minor, patch, release, and tag-prefix rules
-- Accepts short manual tags like `1` and `1.1`, or `v1` and `v1.1` when `tag_prefix: v` is set, and normalizes them when calculating the next full semver tag
-- Ignores non-version tags like `prod`, `dev`, or `latest`
 
 Use this action from another repository with the moving major-version ref:
 
@@ -35,23 +30,17 @@ Default versioning contract:
 
 ## Inputs
 
-| Name             | Description                                                                     | Required | Default               |
-|------------------|---------------------------------------------------------------------------------|----------|-----------------------|
-| `subjects`       | Optional PR title or newline-delimited commit subjects to classify instead of git history | ❌        | `""`                  |
-| `major_prefixes` | Comma-separated custom commit types that trigger a major bump; breaking markers are handled automatically | ❌        | `""`                  |
-| `minor_prefixes` | Comma-separated commit subject prefixes that trigger a minor bump               | ❌        | `feat`                |
-| `patch_prefixes` | Comma-separated commit subject prefixes that trigger a patch bump               | ❌        | `fix`                 |
-| `release_bumps`  | Comma-separated bump levels that create a full release                          | ❌        | `major,minor,patch`   |
-| `tag_prefix`     | Optional prefix for semver tags, for example `v` for tags like `v1.2.3`         | ❌        | `""`                  |
-| `major_alias`    | Whether to output a moving major-version alias for non-zero major releases      | ❌        | `false`               |
+All inputs are optional.
 
-Optional override behavior:
-
-- `subjects` is useful in PR validation when previewing the version implied by the PR title rather than the branch commit list.
-- `major_prefixes`, `minor_prefixes`, and `patch_prefixes` classify commit types differently from the defaults.
-- `release_bumps` limits which bump levels create full release work while still allowing other matching subjects to create tags.
-- `tag_prefix` discovers matching prefixed tags and emits versions with the same prefix.
-- `major_alias` controls whether `majorAlias` and `createMajorAlias` are populated for releases like `v1.0.0`.
+| Name             | Description                                                                     | Default               |
+|------------------|---------------------------------------------------------------------------------|-----------------------|
+| `subjects`       | PR title or newline-delimited commit subjects to classify instead of git history. Useful for PR previews. | `""`                  |
+| `major_prefixes` | Custom commit types that trigger a major bump. Breaking markers still apply.    | `""`                  |
+| `minor_prefixes` | Commit types that trigger a minor bump.                                         | `feat`                |
+| `patch_prefixes` | Commit types that trigger a patch bump.                                         | `fix`                 |
+| `release_bumps`  | Bump levels that create a full release. Other matching bumps can still create tags. | `major,minor,patch`   |
+| `tag_prefix`     | Semver tag prefix to discover and emit, for example `v` for `v1.2.3`.           | `""`                  |
+| `major_alias`    | Whether to populate `majorAlias` and `createMajorAlias` for releases like `v1.0.0`. | `false`               |
 
 ---
 
@@ -61,15 +50,11 @@ Optional override behavior:
 |--------------------|-----------------------------------------------------------------------------|
 | `currentVersion`   | Latest matching semver tag, or `0.0.1` with the configured prefix if none exists |
 | `version`          | Next semver tag when a matching commit exists, otherwise the current tag     |
-| `createNewTag`     | Whether a new semver tag should be created                                  |
-| `createNewRelease` | Whether the resolved bump level should create full release work             |
+| `createNewTag`     | Whether the workflow should create a semver tag                             |
+| `createNewRelease` | Whether the workflow should run full release work for the resolved bump      |
 | `majorAlias`       | Moving major-version alias for the resolved version, for example `v1`       |
-| `createMajorAlias` | Whether the moving major-version alias should be created or updated         |
+| `createMajorAlias` | Whether the workflow should create or update `majorAlias`                   |
 | `bump`             | Resolved bump level, or empty when no matching commit exists                |
-
-`createNewTag` decides whether the workflow should create a semver tag.
-`createNewRelease` decides whether the workflow should run full release work for the resolved bump level.
-`createMajorAlias` decides whether the workflow should create or update the tag named by `majorAlias`.
 
 ---
 
