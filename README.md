@@ -1,5 +1,7 @@
 # Get Release Version
 
+[![Release](https://github.com/chrispsheehan/get-release-version/actions/workflows/release.yml/badge.svg)](https://github.com/chrispsheehan/get-release-version/actions/workflows/release.yml)
+
 This GitHub Action computes the next semver tag from commit subject prefixes since the latest matching semver tag. 
 
 By default it follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/): `feat` triggers a minor bump, `fix` triggers a patch bump, and breaking markers trigger a major bump.
